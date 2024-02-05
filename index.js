@@ -180,6 +180,53 @@ res.send({"status":"runnihg"})
 
 // const formattedSystemInfoArray = [];
 
+// app.get("/getdrivers", async (req, res) => {
+//   try {
+//     const powershellScript = `
+//       $driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus
+//       ConvertTo-Json $driverInfo
+//     `;
+
+//     const powershell = spawn("powershell.exe", [
+//       "-ExecutionPolicy",
+//       "Bypass",
+//       "-NoLogo",
+//       "-NoProfile",
+//       "-Command",
+//       powershellScript,
+//     ]);
+
+//     let output = "";
+
+//     powershell.stdout.on("data", (data) => {
+//       output += data.toString();
+//     });
+
+//     powershell.stderr.on("data", (data) => {
+//       console.error(`PowerShell Error: ${data}`);
+//       res.status(500).send(`PowerShell Error: ${data}`);
+//     });
+
+//     powershell.on("exit", (code) => {
+//       if (code === 0) {
+//         const parsedOutput = JSON.parse(output);
+//         res.json(parsedOutput);
+//         console.log(parsedOutput)
+//       } else {
+//         console.error(`PowerShell process exited with code ${code}`);
+//         res.status(500).send(`PowerShell process exited with code ${code}`);
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
+
+
+
 app.get("/getdrivers", async (req, res) => {
   try {
     const powershellScript = `
@@ -187,33 +234,39 @@ app.get("/getdrivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell =  spawn(powershellPath, [
-      '-ExecutionPolicy',
-      'Bypass',
-      '-NoLogo',
-      '-NoProfile',
-      '-Command',
-      '$driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus; ConvertTo-Json $driverInfo'
-  ]);
+    const powershell = spawn("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", [
+      "-ExecutionPolicy",
+      "Bypass",
+      "-NoLogo",
+      "-NoProfile",
+      "-Command",
+      powershellScript,
+    ]);
 
     let output = "";
+    let errorOutput = "";
 
     powershell.stdout.on("data", (data) => {
       output += data.toString();
     });
 
     powershell.stderr.on("data", (data) => {
-      console.error(`PowerShell Error: ${data}`);
-      res.status(500).send(`PowerShell Error: ${data}`);
+      errorOutput += data.toString();
     });
 
     powershell.on("exit", (code) => {
       if (code === 0) {
-        const parsedOutput = JSON.parse(output);
-        res.json(parsedOutput);
-        console.log(parsedOutput)
+        try {
+          const parsedOutput = JSON.parse(output);
+          res.json(parsedOutput);
+          console.log(parsedOutput);
+        } catch (parseError) {
+          console.error(`Error parsing JSON: ${parseError}`);
+          res.status(500).send(`Error parsing JSON: ${parseError}`);
+        }
       } else {
         console.error(`PowerShell process exited with code ${code}`);
+        console.error(`PowerShell error output: ${errorOutput}`);
         res.status(500).send(`PowerShell process exited with code ${code}`);
       }
     });
@@ -222,6 +275,8 @@ app.get("/getdrivers", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 
 
 function bytesToGB(bytes) {
