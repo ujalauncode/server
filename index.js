@@ -1,7 +1,11 @@
 const express = require("express");
-const { spawn } = require("child_process");
 const cors = require("cors");
 const { exec } = require('child_process');
+const { spawn } = require('child_process');
+const pathToPowerShell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'; // Adjust the path accordingly
+
+const child = spawn(pathToPowerShell, ['your', 'powershell', 'commands']);
+
 
 const app = express();
 const port = 3000;
