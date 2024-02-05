@@ -1,9 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const { exec } = require('child_process');
-const { spawn } = require('child_process');
-const  mongoose  = require("mongoose");
-const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const { exec } = require("child_process");
+const { spawn } = require("child_process");
+const mongoose = require("mongoose");
+const powershellPath =
+  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
 
 // const childProcess = spawn(powershellPath, [
 //     '-ExecutionPolicy',
@@ -14,11 +15,10 @@ const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershe
 //     '$driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus; ConvertTo-Json $driverInfo'
 // ]);
 
-
 const app = express();
 const port = 3000;
 
-mongoose.connect('mongodb://localhost:27017/driversdb', {
+mongoose.connect("mongodb://127.0.0.1:27017/driversdb", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -30,11 +30,7 @@ const driverSchema = new mongoose.Schema({
   driverStatus: String,
 });
 
-// Create a Driver model
-const Driver = mongoose.model('Driver', driverSchema);
-
-
-
+const Driver = mongoose.model("Driver", driverSchema);
 
 app.use(
   cors({
@@ -42,9 +38,9 @@ app.use(
   })
 );
 
-app.get("/",async(req,res)=>{
-res.send({"status":"runnihg"})
-})
+app.get("/", async (req, res) => {
+  res.send({ status: "runnihg" });
+});
 
 app.get("/getdrivers", async (req, res) => {
   try {
@@ -77,7 +73,7 @@ app.get("/getdrivers", async (req, res) => {
       if (code === 0) {
         const parsedOutput = JSON.parse(output);
         res.json(parsedOutput);
-        console.log(parsedOutput)
+        console.log(parsedOutput);
       } else {
         console.error(`PowerShell process exited with code ${code}`);
         res.status(500).send(`PowerShell process exited with code ${code}`);
@@ -88,10 +84,6 @@ app.get("/getdrivers", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-
-
-
 
 // app.get("/getdrivers", async (req, res) => {
 //   try {
@@ -142,9 +134,6 @@ app.get("/getdrivers", async (req, res) => {
 //   }
 // });
 
-
-
-
 function bytesToGB(bytes) {
   const gigabytes = bytes / Math.pow(1024, 3);
   return gigabytes.toFixed(2); // Limit to two decimal places
@@ -157,26 +146,35 @@ function runWMICCommand(command) {
         reject(error);
         return;
       }
-      const lines = stdout.trim().split('\n').filter(line => line.trim() !== '');
-      const values = lines.slice(1).map(line => line.trim());
+      const lines = stdout
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim() !== "");
+      const values = lines.slice(1).map((line) => line.trim());
 
       resolve(values);
     });
   });
 }
-
-app.get('/systeminfo', async (req, res) => {
+app.get("/systeminfo", async (req, res) => {
   try {
-    const cpuInfo = await runWMICCommand('wmic cpu get name');
-    const osInfo = await runWMICCommand('wmic os get Caption');
-    const diskInfoBytes = await runWMICCommand('wmic diskdrive get size');
-    const memoryInfoBytes = await runWMICCommand('wmic MEMORYCHIP get Capacity');
-    const videoControllerInfo = await runWMICCommand('wmic path Win32_VideoController get name');
-
+    const cpuInfo = await runWMICCommand("wmic cpu get name");
+    const osInfo = await runWMICCommand("wmic os get Caption");
+    const diskInfoBytes = await runWMICCommand("wmic diskdrive get size");
+    const memoryInfoBytes = await runWMICCommand(
+      "wmic MEMORYCHIP get Capacity"
+    );
+    const videoControllerInfo = await runWMICCommand(
+      "wmic path Win32_VideoController get name"
+    );
 
     // Convert disk size and memory capacity from bytes to GB
-    const diskInfoGB = diskInfoBytes.map(bytes => bytesToGB(parseFloat(bytes)));
-    const memoryInfoGB = memoryInfoBytes.map(bytes => bytesToGB(parseFloat(bytes)));
+    const diskInfoGB = diskInfoBytes.map((bytes) =>
+      bytesToGB(parseFloat(bytes))
+    );
+    const memoryInfoGB = memoryInfoBytes.map((bytes) =>
+      bytesToGB(parseFloat(bytes))
+    );
 
     const systemInfo = {
       cpuInfo,
@@ -188,12 +186,10 @@ app.get('/systeminfo', async (req, res) => {
 
     res.json(systemInfo);
   } catch (err) {
-    console.error('Error:', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
 
 app.post("/backupall", async (req, res) => {
   try {
@@ -229,7 +225,10 @@ app.post("/backupall", async (req, res) => {
         // Store the data in the database
         await saveDriversToDatabase(parsedOutput);
 
-        res.json({ message: "Backup successful", driversCount: parsedOutput.length });
+        res.json({
+          message: "Backup successful",
+          driversCount: parsedOutput.length,
+        });
         console.log(parsedOutput);
       } else {
         console.error(`PowerShell process exited with code ${code}`);
@@ -246,7 +245,7 @@ app.post("/backupall", async (req, res) => {
 async function saveDriversToDatabase(driversData) {
   try {
     // Map the driversData to an array of Driver model instances
-    const driversInstances = driversData.map(driver => ({
+    const driversInstances = driversData.map((driver) => ({
       deviceName: driver.DeviceName,
       driverVersion: driver.DriverVersion,
       driverStatus: driver.DriverStatus,
@@ -255,9 +254,9 @@ async function saveDriversToDatabase(driversData) {
     // Insert the array of instances into the database
     await Driver.insertMany(driversInstances);
 
-    console.log('Drivers saved to the database:', driversData);
+    console.log("Drivers saved to the database:", driversData);
   } catch (error) {
-    console.error('Error saving drivers to the database:', error);
+    console.error("Error saving drivers to the database:", error);
   }
 }
 
