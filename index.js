@@ -2,9 +2,16 @@ const express = require("express");
 const cors = require("cors");
 const { exec } = require('child_process');
 const { spawn } = require('child_process');
-// const pathToPowerShell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'; // Adjust the path accordingly
+const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 
-// const child = spawn(pathToPowerShell, ['your', 'powershell', 'commands']);
+// const childProcess = spawn(powershellPath, [
+//     '-ExecutionPolicy',
+//     'Bypass',
+//     '-NoLogo',
+//     '-NoProfile',
+//     '-Command',
+//     '$driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus; ConvertTo-Json $driverInfo'
+// ]);
 
 
 const app = express();
@@ -180,14 +187,14 @@ app.get("/getdrivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
-      "-ExecutionPolicy",
-      "Bypass",
-      "-NoLogo",
-      "-NoProfile",
-      "-Command",
-      powershellScript,
-    ]);
+    const powershell =  spawn(powershellPath, [
+      '-ExecutionPolicy',
+      'Bypass',
+      '-NoLogo',
+      '-NoProfile',
+      '-Command',
+      '$driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus; ConvertTo-Json $driverInfo'
+  ]);
 
     let output = "";
 
