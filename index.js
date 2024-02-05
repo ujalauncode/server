@@ -12,7 +12,9 @@ app.use(
   })
 );
 
-
+app.get("/",async(req,res)=>{
+res.send({"status":"runnihg"})
+})
 // const systemInformation = {
 //   "WAN Miniport (Network Monitor)": "10.0.22621.1",
 //   "WAN Miniport (IPv6)": "10.0.22621.1",
@@ -198,6 +200,7 @@ app.get("/getdrivers", async (req, res) => {
       if (code === 0) {
         const parsedOutput = JSON.parse(output);
         res.json(parsedOutput);
+        console.log(parsedOutput)
       } else {
         console.error(`PowerShell process exited with code ${code}`);
         res.status(500).send(`PowerShell process exited with code ${code}`);
@@ -257,9 +260,6 @@ app.get('/systeminfo', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-
 
 
 // const systemInformation = {
@@ -478,22 +478,6 @@ app.get('/systeminfo', async (req, res) => {
 //     res.status(500).send("Internal Server Error");
 //   }
 // });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 app.listen(port, () => {
