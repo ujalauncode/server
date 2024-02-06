@@ -3,22 +3,15 @@ const cors = require("cors");
 const { exec } = require("child_process");
 const { spawn } = require("child_process");
 const mongoose = require("mongoose");
-const powershellPath =
-  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+// const powershellPath =
+//   "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
 
   // mongodb+srv://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/
 
-// const childProcess = spawn(powershellPath, [
-//     '-ExecutionPolicy',
-//     'Bypass',
-//     '-NoLogo',
-//     '-NoProfile',
-//     '-Command',
-//     '$driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverStatus; ConvertTo-Json $driverInfo'
-// ]);
-// const powershellScript = `
-//     Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"' -Verb RunAs
-// `;
+  const powershellPath = process.env.SystemRoot + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+  const powershellScript = `
+      Start-Process "${powershellPath}" -ArgumentList '-ExecutionPolicy Bypass -File "C:\\Path\\To\\Your\\Script.ps1"' -Verb RunAs
+  `;
 const app = express();
 const port = 3000;
 app.use(
@@ -27,85 +20,85 @@ app.use(
   })
 );
 
-// mongoose.connect("mongodb://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/driversdb", {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// });
+mongoose.connect("mongodb://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/driversdb", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-// const driverSchema = new mongoose.Schema({
-//   DeviceName: String,
-//   DriverVersion: String,
-// });
+const driverSchema = new mongoose.Schema({
+  DeviceName: String,
+  DriverVersion: String,
+});
 
-// const DriverModel = mongoose.model('Driver', driverSchema);
-// const saveDriverToDatabase = async (driver) => {
-//   try {
-//     // Check if the driver already exists in the database
-//     const existingDriver = await DriverModel.findOne({
-//       DeviceName: driver.DeviceName,
-//       DriverVersion: driver.DriverVersion,
-//     });
+const DriverModel = mongoose.model('Driver', driverSchema);
+const saveDriverToDatabase = async (driver) => {
+  try {
+    // Check if the driver already exists in the database
+    const existingDriver = await DriverModel.findOne({
+      DeviceName: driver.DeviceName,
+      DriverVersion: driver.DriverVersion,
+    });
 
-//     if (!existingDriver) {
-//       // If the driver doesn't exist, insert a new record
-//       await DriverModel.create(driver);
-//     }
-//   } catch (error) {
-//     console.error('Error saving driver to database:', error);
-//   }
-// };
+    if (!existingDriver) {
+      // If the driver doesn't exist, insert a new record
+      await DriverModel.create(driver);
+    }
+  } catch (error) {
+    console.error('Error saving driver to database:', error);
+  }
+};
 
-// app.post('/backupall', async (req, res) => {
-//   try {
-//     const powershellScript = `
-//       $driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion
-//       ConvertTo-Json $driverInfo
-//     `;
+app.post('/backupall', async (req, res) => {
+  try {
+    const powershellScript = `
+      $driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion
+      ConvertTo-Json $driverInfo
+    `;
 
-//     const powershell = spawn('powershell.exe', [
-//       '-ExecutionPolicy',
-//       'Bypass',
-//       '-NoLogo',
-//       '-NoProfile',
-//       '-Command',
-//       powershellScript,
-//     ]);
+    const powershell = spawn('powershellPath', [
+      '-ExecutionPolicy',
+      'Bypass',
+      '-NoLogo',
+      '-NoProfile',
+      '-Command',
+      powershellScript,
+    ]);
 
-//     let output = '';
+    let output = '';
 
-//     powershell.stdout.on('data', (data) => {
-//       output += data.toString();
-//     });
+    powershell.stdout.on('data', (data) => {
+      output += data.toString();
+    });
 
-//     powershell.stderr.on('data', (data) => {
-//       console.error(`PowerShell Error: ${data}`);
-//       res.status(500).send(`PowerShell Error: ${data}`);
-//     });
+    powershell.stderr.on('data', (data) => {
+      console.error(`PowerShell Error: ${data}`);
+      res.status(500).send(`PowerShell Error: ${data}`);
+    });
 
-//     powershell.on('exit', async (code) => {
-//       if (code === 0) {
-//         const parsedOutput = JSON.parse(output);
-//         // console.log(parsedOutput.driversCount)
+    powershell.on('exit', async (code) => {
+      if (code === 0) {
+        const parsedOutput = JSON.parse(output);
+        // console.log(parsedOutput.driversCount)
 
-//         // Store each driver in the database
-//         for (const driver of parsedOutput) {
-//           await saveDriverToDatabase(driver);
-//         }
+        // Store each driver in the database
+        for (const driver of parsedOutput) {
+          await saveDriverToDatabase(driver);
+        }
 
-//         res.json({
-//           message: 'Backup successful',
-//           driversCount: parsedOutput,
-//         });
-//       } else {
-//         console.error(`PowerShell process exited with code ${code}`);
-//         res.status(500).send(`PowerShell process exited with code ${code}`);
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).send('Internal Server Error');
-//   }
-// });
+        res.json({
+          message: 'Backup successful',
+          driversCount: parsedOutput,
+        });
+      } else {
+        console.error(`PowerShell process exited with code ${code}`);
+        res.status(500).send(`PowerShell process exited with code ${code}`);
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 app.get('/totalcount', async (req, res) => {
   try {
