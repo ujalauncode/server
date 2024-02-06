@@ -126,7 +126,7 @@ app.get("/getdrivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
+    const powershell = spawn("powershellPath", [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
