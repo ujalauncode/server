@@ -71,4 +71,49 @@
 //   console.log(`Server is running on port ${port}`);
 // });
 
+const express = require('express');
+const { execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const port = 3001;
+
+app.use(express.json());
+
+app.post('/backupDrivers', (req, res) => {
+  const backupFolder = path.join(__dirname, 'DriverBackup');
+
+  // Ensure the destination folder exists
+  if (!fs.existsSync(backupFolder)) {
+    fs.mkdirSync(backupFolder);
+  }
+
+  try {
+    // Run PowerShell command to get driver information
+    const powershellCmd = 'Get-WindowsDriver -Online -All';
+    const driversInfo = execSync(`powershell -Command "${powershellCmd}"`, { encoding: 'utf-8' });
+
+    // Parse PowerShell output to extract driver paths
+    const driverPaths = driversInfo.split('\n')
+      .filter(line => line.trim().startsWith('Published Name'))
+      .map(line => line.split(':').slice(1).join(':').trim());
+
+    // Copy each driver file to the destination folder
+    driverPaths.forEach(driverPath => {
+      const driverFileName = path.basename(driverPath);
+      const destinationPath = path.join(backupFolder, driverFileName);
+      fs.copyFileSync(driverPath, destinationPath);
+    });
+
+    res.json({ success: true, message: 'Driver backup successful.' });
+  } catch (error) {
+    console.error(`Error during driver backup: ${error}`);
+    res.status(500).json({ success: false, message: 'Failed to back up drivers.' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});
 
