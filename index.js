@@ -6,6 +6,8 @@ const mongoose = require("mongoose");
 const powershellPath =
   "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
 
+  // mongodb+srv://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/
+
 // const childProcess = spawn(powershellPath, [
 //     '-ExecutionPolicy',
 //     'Bypass',
@@ -25,7 +27,7 @@ app.use(
   })
 );
 
-mongoose.connect("mongodb://127.0.0.1:27017:27017/driversdb", {
+mongoose.connect("mongodb://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/driversdb", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
