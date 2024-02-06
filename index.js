@@ -20,10 +20,10 @@ app.use(
   })
 );
 
-mongoose.connect("mongodb://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/driversdb", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// mongoose.connect("mongodb://ujala:ujala123@cluster0.g1p3xeq.mongodb.net/driversdb", {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// });
 
 const driverSchema = new mongoose.Schema({
   DeviceName: String,
