@@ -248,7 +248,7 @@ app.use(
   })
 );
 const powershellPath =
-  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+  "C:\\Windows\\System32\\WindowsPowerShell\\10.0.22\\powershell.exe";
 // MongoDB connection
 mongoose.connect("mongodb+srv://user1:user123@cluster0.g1p3xeq.mongodb.net/driversdbs", {
   useNewUrlParser: true,
