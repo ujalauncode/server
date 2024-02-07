@@ -339,7 +339,7 @@ app.get("/drivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
+    const powershell = spawn("powershell.exe -verb runas", [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
