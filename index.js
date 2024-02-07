@@ -247,8 +247,9 @@ app.use(
     origin: "http://localhost:1420",
   })
 );
-const powershellPath =
-  "C:\\Windows\\System32\\WindowsPowerShell\\10.0.22\\powershell.exe";
+// const powershellPath =
+//   "C:\\Windows\\System32\\WindowsPowerShell\\10.0.22\\powershell.exe";
+
 // MongoDB connection
 mongoose.connect("mongodb+srv://user1:user123@cluster0.g1p3xeq.mongodb.net/driversdbs", {
   useNewUrlParser: true,
@@ -280,7 +281,6 @@ const saveDriverToDatabase = async (driver) => {
   }
 };
 
-// Route to backup drivers
 app.post("/backup", async (req, res) => {
   try {
     const powershellScript = `
@@ -288,7 +288,7 @@ app.post("/backup", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn(powershellPath, [
+    const powershell = spawn("poweshell.exe", [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
@@ -332,7 +332,6 @@ app.post("/backup", async (req, res) => {
   }
 });
 
-// Route to get drivers
 app.get("/drivers", async (req, res) => {
   try {
     const powershellScript = `
@@ -340,7 +339,7 @@ app.get("/drivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe -verb runas", [
+    const powershell = spawn("powershell.exe" , [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
