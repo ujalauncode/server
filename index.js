@@ -247,7 +247,8 @@ app.use(
     origin: "http://localhost:1420",
   })
 );
-
+const powershellPath =
+  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
 // MongoDB connection
 mongoose.connect("mongodb+srv://user1:user123@cluster0.g1p3xeq.mongodb.net/driversdbs", {
   useNewUrlParser: true,
@@ -287,7 +288,7 @@ app.post("/backup", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
+    const powershell = spawn(powershellPath, [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
