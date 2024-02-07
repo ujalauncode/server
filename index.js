@@ -346,7 +346,7 @@ app.get("/drivers", async (req, res) => {
       "-NoProfile",
       "-Command",
       powershellScript,
-    ]);
+    ], { shell: true });
 
     let output = "";
 
