@@ -4,7 +4,7 @@ const { exec } = require("child_process");
 const { spawn } = require("child_process");
 const mongoose = require("mongoose");
 const powershellPath =
-  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
 
 const app = express();
 const port = 3000;
@@ -62,7 +62,7 @@ app.post("/backupall", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
+    const powershell = spawn(powershellPath, [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
@@ -142,7 +142,7 @@ app.get("/getdrivers", async (req, res) => {
       ConvertTo-Json $driverInfo
     `;
 
-    const powershell = spawn("powershell.exe", [
+    const powershell = spawn(powershellPath, [
       "-ExecutionPolicy",
       "Bypass",
       "-NoLogo",
