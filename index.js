@@ -121,16 +121,75 @@ console.log(parsedOutput)
 
 
 
+// app.get("/backupdate", async (req, res) => {
+//   try {
+//     // Find all latest backup dates in the database
+//     const latestBackups = await DriverModel.find({}, { _id: 0, backupDate: 1 }).sort({ backupDate: -1 });
+
+//     if (latestBackups.length > 0) {
+//       const latestBackupDates = latestBackups.map(({ backupDate }) => backupDate);
+//       res.json({
+//         latestBackupDates,
+//       });
+//     } else {
+//       res.json({
+//         message: "No backup dates found in the database",
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error retrieving latest backup dates:', error);
+//     res.status(500).send('Internal Server Error');
+//   }
+// });
+
+
+app.delete("/backupdate/:id", async (req, res) => {
+  
+  const { id }= req.params;
+  console.log(id)
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+    const deletedBackupDate = await DriverModel.findByIdAndDelete(id);
+
+    if (deletedBackupDate) {
+      res.json({
+        message: "Backup date deleted successfully",
+        deletedBackupDate
+      });
+    } else {
+      res.status(404).json({
+        message: "Backup date not found"
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting backup date:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
 app.get("/backupdate", async (req, res) => {
   try {
     // Find all latest backup dates in the database
     const latestBackups = await DriverModel.find({}, { _id: 0, backupDate: 1 }).sort({ backupDate: -1 });
 
-    if (latestBackups) {
-      const latestBackupDates = latestBackups.map(({ backupDate }) => backupDate);
-      res.json({
-        latestBackupDates,
-      });
+    if (latestBackups.length > 0) {
+      // Filter out null values and invalid dates
+      const latestBackupDates = latestBackups
+        .map(({ backupDate }) => backupDate)
+        .filter(date => date && isValidDate(date)); // Filter out null and invalid dates
+
+      if (latestBackupDates.length > 0) {
+        res.json({
+          latestBackupDates,
+        });
+      } else {
+        res.json({
+          message: "No valid backup dates found in the database",
+        });
+      }
     } else {
       res.json({
         message: "No backup dates found in the database",
@@ -141,6 +200,16 @@ app.get("/backupdate", async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+function isValidDate(dateString) {
+  // Implement your date validation logic here
+  // For example, you can use libraries like Moment.js to validate date strings
+  // In this example, I'm assuming a simple date format like "DD/MM/YYYY"
+  const pattern = /^\d{2}\/\d{2}\/\d{4}$/;
+  return pattern.test(dateString);
+}
+
+
 
 
 app.get("/totalcount", async (req, res) => {
