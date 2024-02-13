@@ -3,13 +3,10 @@ const cors = require("cors");
 const { exec } = require("child_process");
 const { spawn } = require("child_process");
 const mongoose = require("mongoose");
-const powershellPath =
-// "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
- 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
-
-
+const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 const app = express();
 const port = 3000;
+
 app.use(
   cors({
     origin: "http://localhost:1420",
@@ -29,33 +26,40 @@ const driverSchema = new mongoose.Schema({
   DriverVersion: String,
   backupDate: String
 });
-const nameSchema = new mongoose.Schema({
-  Name: String,
-});
 
 const DriverModel = mongoose.model("Driver", driverSchema);
 
-const saveDriverToDatabase = async (driver) => {
+
+const saveDriverToDatabase = async (driver, backupDate) => {
   try {
-    // Find existing drivers with the same DeviceName and DriverVersion
     const existingDrivers = await DriverModel.find({
       DeviceName: driver.DeviceName,
       DriverVersion: driver.DriverVersion,
+      backupDate: backupDate,
     });
 
-    // Delete existing drivers
     if (existingDrivers.length > 0) {
       for (const existingDriver of existingDrivers) {
         await DriverModel.deleteOne({ _id: existingDriver._id });
       }
     }
     await DriverModel.create(driver);
-    // console.log("Driver saved to the database:", driver);
+    console.log('Driver saved to database');
   } catch (error) {
     console.error("Error saving driver to database:", error);
   }
 };
 
+
+const saveBackupDateToDatabase = async (backupDate) => {
+  try {
+    await DriverModel.create({ backupDate });
+    console.log('Backup date saved to database');
+  } catch (error) {
+    console.error('Error saving backup date to database:', error);
+    throw error; 
+  }
+};
 
 app.post("/backupall", async (req, res) => {
   try {
@@ -88,10 +92,15 @@ app.post("/backupall", async (req, res) => {
       if (code === 0) {
         const parsedOutput = JSON.parse(output);
         const currentDate = new Date().toLocaleDateString('en-GB'); 
-
+console.log(parsedOutput)
         for (const driver of parsedOutput) {
           await saveDriverToDatabase(driver);
+
         }
+        
+        await saveBackupDateToDatabase(currentDate);
+
+
 
         res.json({
           message: "Backup successful",
@@ -111,18 +120,28 @@ app.post("/backupall", async (req, res) => {
 });
 
 
-app.get("/backupdate", (req, res) => {
+
+app.get("/backupdate", async (req, res) => {
   try {
-    const currentDate = new Date().toLocaleDateString('en-GB'); 
-    // console.log("back up date  =",currentDate)
-    res.json({
-      backupDate: currentDate,
-    });
+    // Find all latest backup dates in the database
+    const latestBackups = await DriverModel.find({}, { _id: 0, backupDate: 1 }).sort({ backupDate: -1 });
+
+    if (latestBackups) {
+      const latestBackupDates = latestBackups.map(({ backupDate }) => backupDate);
+      res.json({
+        latestBackupDates,
+      });
+    } else {
+      res.json({
+        message: "No backup dates found in the database",
+      });
+    }
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send("Internal Server Error");
+    console.error('Error retrieving latest backup dates:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
+
 
 app.get("/totalcount", async (req, res) => {
   try {
@@ -240,12 +259,6 @@ app.get("/systeminfo", async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
-
-
-
-
-
 
 // const express = require("express");
 // const cors = require("cors");

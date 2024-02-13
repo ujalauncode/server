@@ -1,47 +1,115 @@
-const ffi = require('ffi-napi');
-const ref = require('ref-napi');
+const { spawn } = require("child_process");
+const express = require("express");
+const app = express();
+const { exec } = require('child_process');
+const { PowerShell } = require('node-powershell');
 
-// Constants
-const DIGCF_PRESENT = 0x00000002;
-const DIGCF_ALLCLASSES = 0x00000004;
-const SPDRP_DEVICEDESC = 0x00000000;
+// app.get("/getdrivers", async (req, res) => {
+//   try {
+//     // PowerShell script to get information about drivers with available updates
+//     const updateInfoScript = `
+//       Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot | Format-Table -AutoSize | Out-String
+//     `;
 
-// Function signatures
-const setupApi = ffi.Library('setupapi', {
-  'SetupDiGetClassDevsA': ['pointer', ['pointer', 'pointer', 'pointer', 'uint']],
-  'SetupDiEnumDeviceInfo': ['int', ['pointer', 'uint', 'pointer']],
-  'SetupDiGetDeviceRegistryPropertyA': ['int', ['pointer', 'pointer', 'uint', 'pointer', 'pointer', 'uint', 'pointer']],
-  'SetupDiDestroyDeviceInfoList': ['int', ['pointer']],
-});
+//     // Run the PowerShell script to get information about drivers with available updates with elevated privileges
+//     const updateInfoProcess = spawn(powershellPath, [
+//       "-NoProfile",
+//       "-ExecutionPolicy",
+//       "Bypass",
+//       "-Command",
+//       updateInfoScript,
+//     ]);
 
-// Struct for SP_DEVINFO_DATA
-const SP_DEVINFO_DATA = new Buffer(28);  // Size of SP_DEVINFO_DATA structure
+//     let updateInfoOutput = "";
 
-// Function to enumerate devices
-function enumerateDevices() {
-  const deviceInfoSet = setupApi.SetupDiGetClassDevsA(ref.NULL, ref.NULL, ref.NULL, DIGCF_PRESENT | DIGCF_ALLCLASSES);
-  if (deviceInfoSet.isNull()) {
-    console.error('Error opening device information set.');
-    return;
+//     updateInfoProcess.stdout.on("data", (data) => {
+//       updateInfoOutput += data.toString();
+//     });
+
+//     updateInfoProcess.stderr.on("data", (data) => {
+//       console.error(`PowerShell Error (Update Info): ${data}`);
+//       res.status(500).send(`PowerShell Error (Update Info): ${data}`);
+//     });
+
+//     updateInfoProcess.on("exit", (updateInfoCode) => {
+//       if (updateInfoCode === 0) {
+//         // Extract and format the desired information from the PowerShell output
+//         const formattedUpdateInfo = updateInfoOutput
+//           .split('\n')
+//           .filter(line => line.trim() !== '')
+//           .map(line => {
+//             const columns = line.split(/\s+/);
+//             return {
+//               ComputerName: columns[0],
+//               Status: columns[1],
+//               KB: columns[2],
+//               Size: columns[3],
+//               Title: columns.slice(4).join(' ')
+//             };
+//           });
+
+//         // Send the formatted update information in the response
+//         res.json({
+//           updateInfo: formattedUpdateInfo,
+//         });
+//       } else {
+//         console.error(`PowerShell process (Update Info) exited with code ${updateInfoCode}`);
+//         res.status(500).send(`PowerShell process (Update Info) exited with code ${updateInfoCode}`);
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
+
+// Define the PowerShell command
+
+// Define the PowerShell command with elevated privileges
+
+
+
+// Define the PowerShell command with elevated privileges
+
+// Define the PowerShell command to get driver updates
+// const powershellCommand = 'powershell.exe Get-WindowsUpdate -MicrosoftUpdate -AcceptAll | Select-Object -ExpandProperty Title';
+
+// exec(powershellCommand, (error, stdout, stderr) => {
+//   if (error) {
+//     console.error(`Error executing PowerShell command: ${error}`);
+//     return;
+//   }
+
+//   console.log('Available driver updates:');
+//   console.log(stdout);
+
+//   if (stderr) {
+//     console.error('Error:');
+//     console.error(stderr);
+//   }
+// });
+
+async function getAvailableUpdates() {
+  const ps = new PowerShell();
+
+  try {
+      const command = 'Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot';
+
+      await ps.addCommand(command);
+      const output = await ps.invoke();
+      console.log(output);
+  } catch (err) {
+      console.error(err);
+  } finally {
+      ps.dispose();
   }
-
-  const deviceInfoData = SP_DEVINFO_DATA;
-  deviceInfoData.fill(0);
-  deviceInfoData.type = ref.types.uint;  // Specify the type for casting
-
-  for (let i = 0; setupApi.SetupDiEnumDeviceInfo(deviceInfoSet, i, deviceInfoData) !== 0; i++) {
-    const deviceNameBuffer = Buffer.alloc(255);
-    if (setupApi.SetupDiGetDeviceRegistryPropertyA(deviceInfoSet, deviceInfoData, SPDRP_DEVICEDESC,
-        ref.NULL, deviceNameBuffer, deviceNameBuffer.length, ref.NULL) !== 0) {
-      const deviceName = ref.readCString(deviceNameBuffer);
-      console.log(`Device ${i + 1}: ${deviceName}`);
-    }
-  }
-
-  setupApi.SetupDiDestroyDeviceInfoList(deviceInfoSet);
 }
 
-// Execute the enumeration
-enumerateDevices();
+getAvailableUpdates();
 
-
+const port = 3006; 
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
