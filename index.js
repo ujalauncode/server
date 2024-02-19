@@ -119,29 +119,33 @@ console.log(parsedOutput)
   }
 });
 
+app.get("/backupall", async (req, res) => {
+  try {
+    // Retrieve all drivers from the database
+    const drivers = await DriverModel.find();
 
+    // Send the retrieved drivers as a response
+    res.json(drivers);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-// app.get("/backupdate", async (req, res) => {
+// app.get("/backupall/drivers", async (req, res) => {
 //   try {
-//     // Find all latest backup dates in the database
-//     const latestBackups = await DriverModel.find({}, { _id: 0, backupDate: 1 }).sort({ backupDate: -1 });
-
-//     if (latestBackups.length > 0) {
-//       const latestBackupDates = latestBackups.map(({ backupDate }) => backupDate);
-//       res.json({
-//         latestBackupDates,
-//       });
-//     } else {
-//       res.json({
-//         message: "No backup dates found in the database",
-//       });
-//     }
+//     // Fetch all drivers from the database
+//     const drivers = await DriverModel.find();
+    
+//     res.json({
+//       drivers: DeviceName,
+//       drivers:DriverVersion
+//     });
 //   } catch (error) {
-//     console.error('Error retrieving latest backup dates:', error);
-//     res.status(500).send('Internal Server Error');
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
 //   }
 // });
-
 
 app.delete("/backupdate/:id", async (req, res) => {
   
@@ -202,15 +206,9 @@ app.get("/backupdate", async (req, res) => {
 });
 
 function isValidDate(dateString) {
-  // Implement your date validation logic here
-  // For example, you can use libraries like Moment.js to validate date strings
-  // In this example, I'm assuming a simple date format like "DD/MM/YYYY"
   const pattern = /^\d{2}\/\d{2}\/\d{4}$/;
   return pattern.test(dateString);
 }
-
-
-
 
 app.get("/totalcount", async (req, res) => {
   try {

@@ -1,115 +1,131 @@
-const { spawn } = require("child_process");
-const express = require("express");
-const app = express();
+
+// const { exec } = require('child_process');
+
+// // Command to open PowerShell as administrator
+// const command = 'Start-Process powershell -Verb RunAs';
+
+// // Execute the command
+// exec(`powershell.exe -Command "${command}"`, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error(`Error opening PowerShell: ${error}`);
+//         return;
+//     }
+//     console.log(`PowerShell opened as administrator.`);
+// });
+
+
+
+// const { exec } = require('child_process');
+
+// // Command to open PowerShell as administrator
+// const command = 'Start-Process powershell -Verb RunAs -ArgumentList "-Command \"& { Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot }\""';
+
+// // Execute the command
+// exec(command, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error(`Error opening PowerShell: ${error}`);
+//         return;
+//     }
+//     console.log(`PowerShell opened as administrator.`);
+// });
+
+
+// const { exec } = require('child_process');
+
+// // Command to execute Get-WUInstall with elevated privileges
+// const command = 'powershell.exe -ExecutionPolicy Bypass -Command "Start-Process powershell -ArgumentList \' -NoProfile -ExecutionPolicy Bypass -Command \"Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot\"\' -Verb RunAs"';
+
+// // Execute the command
+// exec(command, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error(`Error executing PowerShell command: ${error}`);
+//         return;
+//     }
+//     console.log(`PowerShell command executed successfully.`);
+//     console.log(stdout);
+// });
+
+
+
+
+
+// const { exec } = require('child_process');
+
+// const command = 'powershell.exe -ExecutionPolicy Bypass -Command "Start-Process powershell -ArgumentList \' -NoExit -NoProfile -ExecutionPolicy Bypass -Command \"Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot\"\' -Verb RunAs"';
+// exec(command, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error(`Error executing PowerShell command: ${error}`);
+//         return;
+//     }
+//     console.log(`PowerShell command executed successfully.`);
+//     console.log(stdout);
+// });
+
+
+
 const { exec } = require('child_process');
-const { PowerShell } = require('node-powershell');
 
-// app.get("/getdrivers", async (req, res) => {
-//   try {
-//     // PowerShell script to get information about drivers with available updates
-//     const updateInfoScript = `
-//       Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot | Format-Table -AutoSize | Out-String
-//     `;
+const installCommands = [
+    'Install-Module -Name PSWindowsUpdate -Force -AllowClobber -Scope CurrentUser',
+    'Import-Module PSWindowsUpdate',
+];
+const updateCommand = 'Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot';
+function executePowerShellCommands(commands, index = 0) {
+    if (index >= commands.length) {
+        console.log('All PowerShell commands executed successfully.');
+        executeUpdateCommand();
+        return;
+    }
+    const command = commands[index];
+    const powershellCommand = `powershell.exe -ExecutionPolicy Bypass -Command "${command}"`;
+    exec(powershellCommand, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing PowerShell command "${command}": ${error}`);
+            return;
+        }
+        console.log(`PowerShell command "${command}" executed successfully.`);
+        console.log(stdout);
 
-//     // Run the PowerShell script to get information about drivers with available updates with elevated privileges
-//     const updateInfoProcess = spawn(powershellPath, [
-//       "-NoProfile",
-//       "-ExecutionPolicy",
-//       "Bypass",
-//       "-Command",
-//       updateInfoScript,
-//     ]);
-
-//     let updateInfoOutput = "";
-
-//     updateInfoProcess.stdout.on("data", (data) => {
-//       updateInfoOutput += data.toString();
-//     });
-
-//     updateInfoProcess.stderr.on("data", (data) => {
-//       console.error(`PowerShell Error (Update Info): ${data}`);
-//       res.status(500).send(`PowerShell Error (Update Info): ${data}`);
-//     });
-
-//     updateInfoProcess.on("exit", (updateInfoCode) => {
-//       if (updateInfoCode === 0) {
-//         // Extract and format the desired information from the PowerShell output
-//         const formattedUpdateInfo = updateInfoOutput
-//           .split('\n')
-//           .filter(line => line.trim() !== '')
-//           .map(line => {
-//             const columns = line.split(/\s+/);
-//             return {
-//               ComputerName: columns[0],
-//               Status: columns[1],
-//               KB: columns[2],
-//               Size: columns[3],
-//               Title: columns.slice(4).join(' ')
-//             };
-//           });
-
-//         // Send the formatted update information in the response
-//         res.json({
-//           updateInfo: formattedUpdateInfo,
-//         });
-//       } else {
-//         console.error(`PowerShell process (Update Info) exited with code ${updateInfoCode}`);
-//         res.status(500).send(`PowerShell process (Update Info) exited with code ${updateInfoCode}`);
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
-
-
-
-// Define the PowerShell command
-
-// Define the PowerShell command with elevated privileges
-
-
-
-// Define the PowerShell command with elevated privileges
-
-// Define the PowerShell command to get driver updates
-// const powershellCommand = 'powershell.exe Get-WindowsUpdate -MicrosoftUpdate -AcceptAll | Select-Object -ExpandProperty Title';
-
-// exec(powershellCommand, (error, stdout, stderr) => {
-//   if (error) {
-//     console.error(`Error executing PowerShell command: ${error}`);
-//     return;
-//   }
-
-//   console.log('Available driver updates:');
-//   console.log(stdout);
-
-//   if (stderr) {
-//     console.error('Error:');
-//     console.error(stderr);
-//   }
-// });
-
-async function getAvailableUpdates() {
-  const ps = new PowerShell();
-
-  try {
-      const command = 'Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot';
-
-      await ps.addCommand(command);
-      const output = await ps.invoke();
-      console.log(output);
-  } catch (err) {
-      console.error(err);
-  } finally {
-      ps.dispose();
-  }
+        executePowerShellCommands(commands, index + 1);
+    });
 }
 
-getAvailableUpdates();
+function executeUpdateCommand() {
+    const checkCommand = 'powershell.exe -Command "Get-Module -ListAvailable -Name PSWindowsUpdate"';
 
-const port = 3006; 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+    exec(checkCommand, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error checking module existence: ${error}`);
+            return;
+        }
+
+        if (stdout.includes('PSWindowsUpdate')) {
+            // Module is installed and imported, execute the update command
+            execUpdateCommand();
+        } else {
+            console.log('PSWindowsUpdate module is not installed and imported.');
+        }
+    });
+}
+function execUpdateCommand() {
+    const command = `powershell.exe -ExecutionPolicy Bypass -Command "Start-Process powershell -ArgumentList '-NoExit -NoProfile -ExecutionPolicy Bypass -Command \\"${updateCommand}\\"' -Verb RunAs"`;
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing update command: ${error}`);
+            return;
+        }
+        console.log('Update command executed successfully.');
+        console.log(stdout);
+    });
+}
+executePowerShellCommands(installCommands);
+
+
+
+
+
+
+
+
+
