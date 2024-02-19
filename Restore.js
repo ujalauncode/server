@@ -91,7 +91,6 @@ app.post('/saveQfeData', (req, res) => {
     });
 });
 
-
 app.get('/saveQfeData', (req, res) => {
     // Access the MongoDB collection
     const collection = client.db('drivers_restore').collection('restore');
@@ -109,9 +108,72 @@ app.get('/saveQfeData', (req, res) => {
     });
 });
 
+// Run the command to install Windows updates
 
+app.post('/api/install-windows-update', (req, res) => {
+    exec('Install-WindowsUpdate -AcceptAll -AutoReboot', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${error}`);
+        return res.status(500).json({ status: 'Error', message: 'Failed to install updates.' });
+      }
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+      res.json({ status: 'Success', message: 'Updates installed successfully.' });
+    });
+  });
 
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
+
+// const { exec } = require('child_process');
+
+// // Commands to execute sequentially in PowerShell
+// const commands = [
+//     'Install-Module -Name PSWindowsUpdate -Force -AllowClobber -Scope CurrentUser',
+//     'Import-Module PSWindowsUpdate',
+//     'Start-Process powershell -ArgumentList \'-NoProfile -ExecutionPolicy Bypass -Command "Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot"\' -Verb RunAs'
+// ];
+
+// function executePowerShellCommands(commands, index = 0) {
+//     if (index >= commands.length) {
+//         console.log('All PowerShell commands executed successfully.');
+//         return;
+//     }
+
+//     const command = commands[index];
+//     const powershellCommand = `powershell.exe -ExecutionPolicy Bypass -Command "${command}"`;
+
+//     exec(powershellCommand, (error, stdout, stderr) => {
+//         if (error) {
+//             console.error(`Error executing PowerShell command "${command}": ${error}`);
+//             return;
+//         }
+//         console.log(`PowerShell command "${command}" executed successfully.`);
+//         console.log(stdout);
+
+//         // Execute the next command recursively
+//         executePowerShellCommands(commands, index + 1);
+//     });
+// }
+
+// executePowerShellCommands(commands);
+
+
+// const { exec } = require('child_process');
+
+// // Path to the PowerShell script
+// const scriptPath = 'updateScript.ps1';
+
+// exec(`powershell.exe -File ${scriptPath}`, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error(`Error: ${error.message}`);
+//         return;
+//     }
+//     if (stderr) {
+//         console.error(`Command stderr: ${stderr}`);
+//         return;
+//     }
+//     console.log(`Command stdout: ${stdout}`);
+// });

@@ -110,13 +110,27 @@ function executeUpdateCommand() {
 function execUpdateCommand() {
     const command = `powershell.exe -ExecutionPolicy Bypass -Command "Start-Process powershell -ArgumentList '-NoExit -NoProfile -ExecutionPolicy Bypass -Command \\"${updateCommand}\\"' -Verb RunAs"`;
 
-    exec(command, (error, stdout, stderr) => {
+    const updateProcess = exec(command, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error executing update command: ${error}`);
             return;
         }
         console.log('Update command executed successfully.');
         console.log(stdout);
+    });
+
+    // Wait for stdout to receive some output
+    waitForOutput(updateProcess);
+}
+function waitForOutput(process) {
+    process.stdout.on('data', (data) => {
+        console.log(`Received data from stdout: ${data}`);
+        // Assuming receiving data indicates completion of the command
+        process.kill(); // Terminate the process
+    });
+
+    process.on('exit', (code) => {
+        console.log(`Process exited with code ${code}`);
     });
 }
 executePowerShellCommands(installCommands);
@@ -128,4 +142,20 @@ executePowerShellCommands(installCommands);
 
 
 
+
+// const { exec } = require('child_process');
+
+// // Command to execute PowerShell script to install Windows updates
+// const command = 'powershell.exe -Command "Install-WindowsUpdate"';
+
+// // Execute the PowerShell command with elevated privileges
+// exec(command, (error, stdout, stderr) => {
+//     if (error) {
+//         console.error('Error executing command:', error);
+//         return;
+//     }
+//     console.log('Command executed successfully!');
+//     console.log('stdout:', stdout);
+//     console.error('stderr:', stderr);
+// });
 
