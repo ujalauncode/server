@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 const app = express();
 const port = 3000;
+const { platform } = require('os');
 
 app.use(
   cors({
@@ -322,6 +323,41 @@ app.get("/systeminfo", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+// Run the command to install Windows updates
+
+if (platform() === 'win32') {
+  const elevateCmd = 'powershell.exe -Command "Start-Process powershell -ArgumentList \\"-Command Install-WindowsUpdate -AcceptAll -AutoReboot\\" -Verb RunAs"';
+  
+  app.post('/api/install-windows-update', (req, res) => {
+    exec(elevateCmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing command: ${error}`);
+        return res.status(500).json({ status: 'Error', message: 'Failed to install updates.' });
+      }
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+      res.json({ status: 'Success', message: 'Updates installed successfully.' });
+    });
+  });
+} else {
+  // Handle non-Windows platforms
+  app.post('/api/install-windows-update', (req, res) => {
+    res.status(500).json({ status: 'Error', message: 'This functionality is only available on Windows.' });
+  });
+}
+
+
+app.get("/gett", async (req, res) => {
+ res.send({"status":"hello"})
+});
+
+
+
+
+
+
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

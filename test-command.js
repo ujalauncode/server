@@ -37,3 +37,23 @@
 
 
 
+
+// const { exec } = require('child_process');
+// const runas = require('runas');
+
+// // Define your PowerShell command
+// const command = 'Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot';
+
+// // Execute PowerShell command with elevated privileges
+// runas(`powershell.exe -Command "${command}"`, { admin: true }, function(error, stdout, stderr) {
+//   if (error) {
+//     console.error(`Error: ${error.message}`);
+//     return;
+//   }
+//   if (stderr) {
+//     console.error(`stderr: ${stderr}`);
+//     return;
+//   }
+//   console.log(`stdout: ${stdout}`);
+// });
+

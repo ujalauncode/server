@@ -1,6 +1,9 @@
 const express = require('express');
 const { exec } = require('child_process');
 const { MongoClient } = require('mongodb');
+const powershellPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+// const elevate = require('node-windows').elevate;
+const { platform } = require('os');
 
 const app = express();
 const port = 5000;
@@ -15,37 +18,37 @@ client.connect().then(() => {
     console.error('Error connecting to MongoDB:', err);
 });
 
-// app.post('/saveQfeData', (req, res) => {
-//     exec('wmic qfe list brief /format:table', (error, stdout, stderr) => {
-//         if (error) {
-//             console.error(`Error: ${error.message}`);
-//             res.status(500).send('Internal Server Error');
-//             return;
-//         }
-//         if (stderr) {
-//             console.error(`stderr: ${stderr}`);
-//             res.status(500).send('Internal Server Error');
-//             return;
-//         }
+app.post('/saveQfeData', (req, res) => {
+    exec('wmic qfe list brief /format:table', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error: ${error.message}`);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        if (stderr) {
+            console.error(`stderr: ${stderr}`);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
 
-//         // Parse the stdout and process the data
-//         const lines = stdout.split('\n').map(line => line.trim()).filter(line => line !== '');
-//         const data = lines.slice(2).map(line => {
-//             const [des, HotFixId] = line.split(/\s{2,}/);
-//             return { des,HotFixId  };
-//         });
+        // Parse the stdout and process the data
+        const lines = stdout.split('\n').map(line => line.trim()).filter(line => line !== '');
+        const data = lines.slice(2).map(line => {
+            const [des, HotFixId] = line.split(/\s{2,}/);
+            return { des,HotFixId  };
+        });
 
-//         // Save data to MongoDB collection
-//         const collection = client.db('drivers_restore').collection('restore');
-//         collection.insertMany(data).then(result => {
-//             console.log('Data inserted:', result.insertedCount);
-//             res.json({ message: 'Data inserted successfully' });
-//         }).catch(err => {
-//             console.error('Error inserting data into MongoDB:', err);
-//             res.status(500).send('Internal Server Error');
-//         });
-//     });
-// });
+        // Save data to MongoDB collection
+        const collection = client.db('drivers_restore').collection('restore');
+        collection.insertMany(data).then(result => {
+            console.log('Data inserted:', result.insertedCount);
+            res.json({ message: 'Data inserted successfully' });
+        }).catch(err => {
+            console.error('Error inserting data into MongoDB:', err);
+            res.status(500).send('Internal Server Error');
+        });
+    });
+});
 
 
 app.post('/saveQfeData', (req, res) => {
@@ -110,17 +113,79 @@ app.get('/saveQfeData', (req, res) => {
 
 // Run the command to install Windows updates
 
-app.post('/api/install-windows-update', (req, res) => {
-    exec('Install-WindowsUpdate -AcceptAll -AutoReboot', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command: ${error}`);
-        return res.status(500).json({ status: 'Error', message: 'Failed to install updates.' });
-      }
-      console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
-      res.json({ status: 'Success', message: 'Updates installed successfully.' });
+if (platform() === 'win32') {
+    const elevateCmd = 'powershell.exe -Command "Start-Process powershell -ArgumentList \\"-Command Install-WindowsUpdate -AcceptAll -AutoReboot\\" -Verb RunAs"';
+    
+    app.post('/api/install-windows-update', (req, res) => {
+      exec(elevateCmd, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing command: ${error}`);
+          return res.status(500).json({ status: 'Error', message: 'Failed to install updates.' });
+        }
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+        res.json({ status: 'Success', message: 'Updates installed successfully.' });
+      });
     });
-  });
+  } else {
+    // Handle non-Windows platforms
+    app.post('/api/install-windows-update', (req, res) => {
+      res.status(500).json({ status: 'Error', message: 'This functionality is only available on Windows.' });
+    });
+  }
+
+
+
+
+
+
+// if (platform() === 'win32') {
+//     const elevateCmd = 'powershell.exe -WindowStyle Normal -Command "Start-Process powershell -ArgumentList \\"-Command Install-WindowsUpdate -AcceptAll -AutoReboot\\" -Verb RunAs"';
+    
+//     app.post('/api/install-windows-update', (req, res) => {
+//       exec(elevateCmd, (error, stdout, stderr) => {
+//         if (error) {
+//           console.error(`Error executing command: ${error}`);
+//           return res.status(500).json({ status: 'Error', message: 'Failed to install updates.' });
+//         }
+  
+//         // After PowerShell opens, resize the window using cmdow.exe
+//         const resizeCmd = 'cmdow "Windows PowerShell" /sizewidth=300 sizeheight=300';
+//         exec(resizeCmd, (resizeError, resizeStdout, resizeStderr) => {
+//           if (resizeError) {
+//             console.error(`Error resizing window: ${resizeError}`);
+//           }
+//           console.log(`Resize stdout: ${resizeStdout}`);
+//           console.error(`Resize stderr: ${resizeStderr}`);
+//         });
+  
+//         console.log(`stdout: ${stdout}`);
+//         console.error(`stderr: ${stderr}`);
+//         res.json({ status: 'Success', message: 'Updates installed successfully.' });
+//       });
+//     });
+//   } else {
+//     // Handle non-Windows platforms
+//     app.post('/api/install-windows-update', (req, res) => {
+//       res.status(500).json({ status: 'Error', message: 'This functionality is only available on Windows.' });
+//     });
+//   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 app.listen(port, () => {
