@@ -1,59 +1,40 @@
-// const { exec } = require('child_process');
-// exec('wmic qfe list brief /format:table', (error, stdout, stderr) => {
-//     if (error) {
-//         console.error(`Error: ${error.message}`);
-//         return;
-//     }
-//     if (stderr) {
-//         console.error(`stderr: ${stderr}`);
-//         return;
-//     }
-//     console.log(stdout);
-// });
+const express = require('express');
+const mongoose = require('mongoose');
 
+const app = express();
 
-// its working fine
+mongoose.connect('mongodb://localhost:27017/mydatabase', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
 
-// UNINSTALL UPDATE
-// const { exec } = require('child_process');
+const Schema = mongoose.Schema;
+const mytestingschema = new Schema({
+  deviceName: String,
+  driverVersion: String
+});
 
-// // Replace 'kb:4100347' with the actual KB number you want to uninstall
-// const kbNumber = 'kb:5034765';
+const DriverModel = mongoose.model('Driver', mytestingschema);
 
-// const command = `wusa.exe /uninstall /${kbNumber}`;
+app.use(express.json());
 
-// exec(command, (error, stdout, stderr) => {
-//     if (error) {
-//         console.error(`Error: ${error.message}`);
-//         return;
-//     }
-//     if (stderr) {
-//         console.error(`stderr: ${stderr}`);
-//         return;
-//     }
-//     console.log(`stdout: ${stdout}`);
-//     console.log('Update uninstalled successfully.');
-// });
+app.post('/savedriverdata', async (req, res) => {
+  try {
+    const driverData = req.body; 
+    for (const driver of driverData) {
+      await DriverModel.create({
+        deviceName: driver.DeviceName,
+        driverVersion: driver.DriverVersion
+      });
+    }
+    res.status(200).json({ message: 'Driver data saved successfully' });
+  } catch (error) {
+    console.error('Error saving driver data:', error);
+    res.status(500).json({ error: 'Error saving driver data' });
+  }
+});
 
-
-
-
-// const { exec } = require('child_process');
-// const runas = require('runas');
-
-// // Define your PowerShell command
-// const command = 'Get-WUInstall -MicrosoftUpdate -AcceptAll -AutoReboot';
-
-// // Execute PowerShell command with elevated privileges
-// runas(`powershell.exe -Command "${command}"`, { admin: true }, function(error, stdout, stderr) {
-//   if (error) {
-//     console.error(`Error: ${error.message}`);
-//     return;
-//   }
-//   if (stderr) {
-//     console.error(`stderr: ${stderr}`);
-//     return;
-//   }
-//   console.log(`stdout: ${stdout}`);
-// });
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

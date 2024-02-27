@@ -24,6 +24,7 @@
     "path": "^0.12.7",
     "powershell": "^2.3.2",
     "ref-napi": "^3.0.3",
+    "systeminformation": "^5.22.0",
     "yargs": "^17.7.2"
   }
 }
