@@ -33,7 +33,7 @@ const driverSchema = new mongoose.Schema({
 
 const DriverModel = mongoose.model("Driver", driverSchema);
 
-const saveDriverToDatabase = async (driver, backupDate) => {
+const saveDriversToDatabase = async (driver, backupDate) => {
   try {
     const existingDrivers = await DriverModel.find({
       DeviceName: driver.DeviceName,
@@ -53,91 +53,156 @@ const saveDriverToDatabase = async (driver, backupDate) => {
   }
 };
 
-async function saveDriversToDatabase(drivers) {
+app.use(bodyParser.json());
+
+
+
+
+// Function to save driver to database
+const saveDriverToDatabase = async (driver, backupDate) => {
   try {
-    // Save each driver to the database
-    for (const driver of drivers) {
-      const newDriver = new Driver({
-        DeviceName: driver.DeviceName,
-        DriverVersion: driver.DriverVersion,
-        backupDate: driver.backupDate
-      });
-      await newDriver.save();
+    const existingDriver = await DriverModel.findOne({
+      DeviceName: driver.DeviceName,
+      DriverVersion: driver.DriverVersion,
+      backupDate: backupDate,
+    });
+
+    if (existingDriver) {
+      // Driver already exists, delete it
+      await DriverModel.deleteOne({ _id: existingDriver._id });
+      console.log("Existing driver deleted from the database:", existingDriver);
+    }
+
+    // Save the driver to the database
+    await DriverModel.create({
+      DeviceName: driver.DeviceName,
+      DriverVersion: driver.DriverVersion,
+      backupDate: backupDate,
+    });
+    console.log("Driver saved to database:", driver);
+  } catch (error) {
+    console.error("Error saving driver to database:", error);
+    throw error; // Propagate error for better error handling
+  }
+};
+
+const saveBackupDateToDatabase = async (backupDate) => {
+  try {
+    const currentDate = new Date().toLocaleDateString("en-GB");
+    const existingBackupDate = await DriverModel.findOne({
+      backupDate: currentDate,
+    });
+
+    if (!existingBackupDate) {
+      // Save the backup date to the database if it doesn't exist
+      await DriverModel.create({ backupDate: currentDate });
+      console.log("Backup date saved to database:", currentDate);
     }
   } catch (error) {
-    console.error('Error saving drivers to database:', error);
-    throw error;
+    console.error("Error saving backup date to database:", error);
+    throw error; // Propagate error for better error handling
   }
-}
-
+};
 
 app.post("/backupall", async (req, res) => {
-  // try {
-  //   const powershellScript = `
-  //     $driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion
-  //     ConvertTo-Json $driverInfo
-  //   `;
-
-  //   const powershell = spawn(powershellPath, [
-  //     "-ExecutionPolicy",
-  //     "Bypass",
-  //     "-NoLogo",
-  //     "-NoProfile",
-  //     "-Command",
-  //     powershellScript,
-  //   ]);
-
-  //   let output = "";
-
-  //   powershell.stdout.on("data", (data) => {
-  //     output += data.toString();
-  //   });
-
-  //   powershell.stderr.on("data", (data) => {
-  //     console.error(`PowerShell Error: ${data}`);
-  //     res.status(500).send(`PowerShell Error: ${data}`);
-  //   });
-
-  //   powershell.on("exit", async (code) => {
-  //     if (code === 0) {
-  //       const parsedOutput = JSON.parse(output);
-  //       const currentDate = new Date().toLocaleDateString("en-GB");
-  //       const existingBackupDate = await DriverModel.findOne({
-  //         backupDate: currentDate,
-  //       });
-  //       if (existingBackupDate) {
-  //         return res.json({
-  //           message: "Backup already performed for today",
-  //           driversCount: parsedOutput,
-  //           backupDate: currentDate,
-  //         });
-  //       }
-  //       for (const driver of parsedOutput) {
-  //         await saveDriverToDatabase(driver);
-  //       }
-  //       await saveBackupDateToDatabase(currentDate);
-
-  //       res.json({
-  //         message: "Backup successful",
-  //         driversCount: parsedOutput,
-  //         backupDate: currentDate,
-  //       });
-  //     } else {
-  //       console.error(`PowerShell process exited with code ${code}`);
-  //       res.status(500).send(`PowerShell process exited with code ${code}`);
-  //     }
-  //   });
-  // } 
   try {
-    const { driversCount } = req.body;
-    await saveDriversToDatabase(driversCount);
-    res.json({ message: 'Backup data received and saved successfully' });
-  }
-  catch (error) {
+    const { driverData, backupDate } = req.body; // Extract driverData and backupDate from request body
+        const currentDate = new Date().toLocaleDateString("en-GB");
+
+    const existingBackupDate = await DriverModel.findOne({
+      backupDate: currentDate,
+    });
+
+    if (existingBackupDate) {
+      return res.json({
+        message: "Backup already performed for today",
+        driversCount: driverData.length,
+        backupDate: currentDate,
+      });
+    }
+
+    for (const driver of driverData) {
+      await saveDriverToDatabase(driver, backupDate);
+    }
+    await saveBackupDateToDatabase(backupDate);
+
+    res.json({
+      message: "Backup successful",
+      driversCount: driverData.length,
+      backupDate: backupDate,
+    });
+  } catch (error) {
     console.error("Error:", error);
     res.status(500).send("Internal Server Error");
   }
 });
+
+
+
+// app.post("/backupall", async (req, res) => {
+//   try {
+//     const powershellScript = `
+//       $driverInfo = Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion
+//       ConvertTo-Json $driverInfo
+//     `;
+
+//     const powershell = spawn(powershellPath, [
+//       "-ExecutionPolicy",
+//       "Bypass",
+//       "-NoLogo",
+//       "-NoProfile",
+//       "-Command",
+//       powershellScript,
+//     ]);
+
+//     let output = "";
+
+//     powershell.stdout.on("data", (data) => {
+//       output += data.toString();
+//     });
+
+//     powershell.stderr.on("data", (data) => {
+//       console.error(`PowerShell Error: ${data}`);
+//       res.status(500).send(`PowerShell Error: ${data}`);
+//     });
+
+//     powershell.on("exit", async (code) => {
+//       if (code === 0) {
+//         const parsedOutput = JSON.parse(output);
+//         const currentDate = new Date().toLocaleDateString("en-GB");
+//         const existingBackupDate = await DriverModel.findOne({
+//           backupDate: currentDate,
+//         });
+//         if (existingBackupDate) {
+//           return res.json({
+//             message: "Backup already performed for today",
+//             driversCount: parsedOutput,
+//             backupDate: currentDate,
+//           });
+//         }
+//         for (const driver of parsedOutput) {
+//           await saveDriverToDatabase(driver);
+//         }
+//         await saveBackupDateToDatabase(currentDate);
+
+//         res.json({
+//           message: "Backup successful",
+//           driversCount: parsedOutput,
+//           backupDate: currentDate,
+//         });
+//       } else {
+//         console.error(`PowerShell process exited with code ${code}`);
+//         res.status(500).send(`PowerShell process exited with code ${code}`);
+//       }
+//     });
+//   } 
+
+//   catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
 
 app.get("/backupall", async (req, res) => {
   try {
@@ -148,21 +213,6 @@ app.get("/backupall", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-// app.get("/backupall/drivers", async (req, res) => {
-//   try {
-//     // Fetch all drivers from the database
-//     const drivers = await DriverModel.find();
-
-//     res.json({
-//       drivers: DeviceName,
-//       drivers:DriverVersion
-//     });
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
 
 app.delete("/backupdate/:id", async (req, res) => {
   const { id } = req.params;
@@ -197,10 +247,6 @@ app.get("/backupdate", async (req, res) => {
     const seen = new Set();
 
     if (latestBackups.length > 0) {
-      // Filter out null values and invalid dates
-      // const latestBackupDates = latestBackups
-      //   .map(({ backupDate }) => backupDate)
-      //   .filter(date => date && isValidDate(date));
 
       let latestBackupDates = latestBackups
         .map((data) => {
@@ -272,21 +318,29 @@ app.get("/totalcount", async (req, res) => {
 const outdatedDriverSchema = new mongoose.Schema({
   DeviceName: String,
   DriverVersion: String,
+  DriverStatus:String,
+  productID: String // Adding the productID field to the schema
 });
 
 const OutdatedDriver = mongoose.model('OutdatedDriver', outdatedDriverSchema);
 
 app.use(bodyParser.json());
+
 app.post('/api/outdatedDrivers', async (req, res) => {
   try {
-    const { outdatedDrivers } = req.body;
+    const { outdatedDrivers, productID } = req.body; // Extract outdatedDrivers and productID from the request body
 
     const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers);
 
     if (newOutdatedDrivers.length === 0) {
       return res.status(200).json({ message: 'No new outdated drivers to save' });
     }
-    await OutdatedDriver.insertMany(newOutdatedDrivers);
+
+    const outdatedDriversWithProductID = newOutdatedDrivers.map(driver => ({
+      ...driver,
+      productID
+    }));
+    await OutdatedDriver.insertMany(outdatedDriversWithProductID);
 
     res.status(201).json({ message: 'Outdated drivers saved successfully' });
   } catch (error) {
@@ -294,6 +348,7 @@ app.post('/api/outdatedDrivers', async (req, res) => {
     res.status(500).json({ error: 'Failed to save outdated drivers' });
   }
 });
+
 async function filterOutExistingDrivers(outdatedDrivers) {
   const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
   const existingDriverNames = new Set(existingDrivers.map(driver => driver.driverName));
@@ -301,6 +356,40 @@ async function filterOutExistingDrivers(outdatedDrivers) {
 
   return newOutdatedDrivers;
 }
+
+async function checkDriverStatusesAndRemoveUpToDateDrivers() {
+  try {
+    const upToDateDrivers = await OutdatedDriver.find({ DriverStatus: "Up to date" });
+
+    await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
+
+    console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
+  } catch (error) {
+    console.error('Error checking and removing drivers with status "Up to date":', error);
+  }
+}
+
+app.put('/api/outdatedDrivers/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // Extract the unique ID from the request parameters
+    await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date" });
+    await checkDriverStatusesAndRemoveUpToDateDrivers();
+    res.status(200).json({ message: 'Driver status updated successfully' });
+  } catch (error) {
+    console.error('Error updating driver status:', error);
+    res.status(500).json({ error: 'Failed to update driver status' });
+  }
+});
+
+async function performLoginCheckDriverStatusesAndRemoveUpToDateDrivers() {
+  try {
+    await checkDriverStatusesAndRemoveUpToDateDrivers();
+  } catch (error) {
+    console.error('Error performing login check and removing drivers with status "Up to date":', error);
+  }
+}
+
+
 
 
 app.listen(port, () => {
