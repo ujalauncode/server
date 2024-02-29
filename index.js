@@ -357,6 +357,29 @@ async function filterOutExistingDrivers(outdatedDrivers) {
   return newOutdatedDrivers;
 }
 
+
+
+// Assuming you already have required dependencies and your Express app set up
+
+// Route handler for getting the count of outdated drivers
+app.get('/api/outdatedDrivers/count', async (req, res) => {
+  try {
+    const outdatedDriversCount = await getOutdatedDriversCount();
+    res.status(200).json({ count: outdatedDriversCount });
+  } catch (error) {
+    console.error('Error retrieving outdated drivers count:', error);
+    res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
+  }
+});
+
+// Function to get the count of outdated drivers
+async function getOutdatedDriversCount() {
+  const outdatedDriversCount = await OutdatedDriver.countDocuments({});
+  return outdatedDriversCount;
+}
+
+
+
 async function checkDriverStatusesAndRemoveUpToDateDrivers() {
   try {
     const upToDateDrivers = await OutdatedDriver.find({ DriverStatus: "Up to date" });
