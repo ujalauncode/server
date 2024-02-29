@@ -33,30 +33,27 @@ const driverSchema = new mongoose.Schema({
 
 const DriverModel = mongoose.model("Driver", driverSchema);
 
-const saveDriversToDatabase = async (driver, backupDate) => {
-  try {
-    const existingDrivers = await DriverModel.find({
-      DeviceName: driver.DeviceName,
-      DriverVersion: driver.DriverVersion,
-      backupDate: backupDate,
-    });
+// const saveDriversToDatabase = async (driver, backupDate) => {
+//   try {
+//     const existingDrivers = await DriverModel.find({
+//       DeviceName: driver.DeviceName,
+//       DriverVersion: driver.DriverVersion,
+//       backupDate: backupDate,
+//     });
 
-    if (existingDrivers.length > 0) {
-      for (const existingDriver of existingDrivers) {
-        await DriverModel.deleteOne({ _id: existingDriver._id });
-      }
-    }
-    await DriverModel.create(driver);
-    console.log("Driver saved to database");
-  } catch (error) {
-    console.error("Error saving driver to database:", error);
-  }
-};
+//     if (existingDrivers.length > 0) {
+//       for (const existingDriver of existingDrivers) {
+//         await DriverModel.deleteOne({ _id: existingDriver._id });
+//       }
+//     }
+//     await DriverModel.create(driver);
+//     console.log("Driver saved to database");
+//   } catch (error) {
+//     console.error("Error saving driver to database:", error);
+//   }
+// };
 
 app.use(bodyParser.json());
-
-
-
 
 // Function to save driver to database
 const saveDriverToDatabase = async (driver, backupDate) => {
@@ -67,42 +64,52 @@ const saveDriverToDatabase = async (driver, backupDate) => {
       backupDate: backupDate,
     });
 
-    if (existingDriver) {
-      // Driver already exists, delete it
-      await DriverModel.deleteOne({ _id: existingDriver._id });
-      console.log("Existing driver deleted from the database:", existingDriver);
+    if (!existingDriver) {
+      // Save the driver to the database only if it doesn't already exist
+      await DriverModel.create({
+        DeviceName: driver.DeviceName,
+        DriverVersion: driver.DriverVersion,
+        backupDate: backupDate,
+      });
+      console.log("Driver saved to database:", driver);
+    } else {
+      console.log("Driver already exists in the database:", existingDriver);
     }
-
-    // Save the driver to the database
-    await DriverModel.create({
-      DeviceName: driver.DeviceName,
-      DriverVersion: driver.DriverVersion,
-      backupDate: backupDate,
-    });
-    console.log("Driver saved to database:", driver);
   } catch (error) {
     console.error("Error saving driver to database:", error);
     throw error; // Propagate error for better error handling
   }
 };
 
-const saveBackupDateToDatabase = async (backupDate) => {
+const saveBackupDateToDatabase = async (backupDate, driverData) => {
   try {
-    const currentDate = new Date().toLocaleDateString("en-GB");
     const existingBackupDate = await DriverModel.findOne({
-      backupDate: currentDate,
+      backupDate: backupDate,
     });
 
     if (!existingBackupDate) {
-      // Save the backup date to the database if it doesn't exist
-      await DriverModel.create({ backupDate: currentDate });
-      console.log("Backup date saved to database:", currentDate);
+      await DriverModel.create({ backupDate: backupDate });
+      console.log("Backup date saved to database:", backupDate);
+
+      await DriverModel.deleteMany({});
+      console.log("All previous drivers deleted from the database.");
+
+      // Save new drivers
+      for (const driver of driverData) {
+        await saveDriverToDatabase(driver, backupDate);
+      }
+
+      console.log("New drivers saved to the database.");
+    } else {
+      console.log("Backup date already exists in the database:", existingBackupDate.backupDate);
     }
   } catch (error) {
     console.error("Error saving backup date to database:", error);
     throw error; // Propagate error for better error handling
   }
 };
+
+
 
 app.post("/backupall", async (req, res) => {
   try {
@@ -357,10 +364,6 @@ async function filterOutExistingDrivers(outdatedDrivers) {
   return newOutdatedDrivers;
 }
 
-
-
-// Assuming you already have required dependencies and your Express app set up
-
 // Route handler for getting the count of outdated drivers
 app.get('/api/outdatedDrivers/count', async (req, res) => {
   try {
@@ -377,7 +380,6 @@ async function getOutdatedDriversCount() {
   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
   return outdatedDriversCount;
 }
-
 
 
 async function checkDriverStatusesAndRemoveUpToDateDrivers() {
