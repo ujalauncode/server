@@ -109,8 +109,6 @@ const saveBackupDateToDatabase = async (backupDate, driverData) => {
   }
 };
 
-
-
 app.post("/backupall", async (req, res) => {
   try {
     const { driverData, backupDate } = req.body; // Extract driverData and backupDate from request body
@@ -143,8 +141,6 @@ app.post("/backupall", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-
 
 // app.post("/backupall", async (req, res) => {
 //   try {
@@ -209,7 +205,6 @@ app.post("/backupall", async (req, res) => {
 //     res.status(500).send("Internal Server Error");
 //   }
 // });
-
 
 app.get("/backupall", async (req, res) => {
   try {
@@ -375,6 +370,16 @@ app.get('/api/outdatedDrivers/count', async (req, res) => {
   }
 });
 
+app.get("/outdatedDrivers", async (req, res) => {
+  try {
+    const drivers = await OutdatedDriver.find();
+    res.json(drivers);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 // Function to get the count of outdated drivers
 async function getOutdatedDriversCount() {
   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
@@ -382,10 +387,32 @@ async function getOutdatedDriversCount() {
 }
 
 
+app.put('/api/outdatedDrivers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("id",id)
+    const { productID } = req.body; // Extract the product ID from the request body
+
+    // Update the driver status to "Up to date" for the specified ID
+    await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date", ProductID: productID });
+
+    // After updating the driver status, check and remove drivers marked as "Up to date"
+    await checkDriverStatusesAndRemoveUpToDateDrivers();
+
+    res.status(200).json({ message: 'Driver status updated successfully' });
+  } catch (error) {
+    console.error('Error updating driver status:', error);
+    res.status(500).json({ error: 'Failed to update driver status' });
+  }
+});
+
+// Function to check driver statuses and remove drivers marked as "Up to date"
 async function checkDriverStatusesAndRemoveUpToDateDrivers() {
   try {
+    // Find drivers marked as "Up to date"
     const upToDateDrivers = await OutdatedDriver.find({ DriverStatus: "Up to date" });
 
+    // Delete drivers marked as "Up to date"
     await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
 
     console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
@@ -394,25 +421,6 @@ async function checkDriverStatusesAndRemoveUpToDateDrivers() {
   }
 }
 
-app.put('/api/outdatedDrivers/:id', async (req, res) => {
-  try {
-    const { id } = req.params; // Extract the unique ID from the request parameters
-    await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date" });
-    await checkDriverStatusesAndRemoveUpToDateDrivers();
-    res.status(200).json({ message: 'Driver status updated successfully' });
-  } catch (error) {
-    console.error('Error updating driver status:', error);
-    res.status(500).json({ error: 'Failed to update driver status' });
-  }
-});
-
-async function performLoginCheckDriverStatusesAndRemoveUpToDateDrivers() {
-  try {
-    await checkDriverStatusesAndRemoveUpToDateDrivers();
-  } catch (error) {
-    console.error('Error performing login check and removing drivers with status "Up to date":', error);
-  }
-}
 
 
 
