@@ -115,7 +115,7 @@ const saveBackupDateToDatabase = async (backupDate, driverData) => {
   }
 };
 
-app.post("/backupall", async (req, res) => {
+app.post("/backupalldata", async (req, res) => {
   try {
     const { driverData, backupDate } = req.body; // Extract driverData and backupDate from request body
         const currentDate = new Date().toLocaleDateString("en-GB");
