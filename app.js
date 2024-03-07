@@ -11,11 +11,17 @@ const app = express();
 const port = process.env.port || 3000;
 const { platform } = require("os");
 
+// app.use(
+//   cors({
+//     origin: "http://localhost:1420",
+//   })
+// );
 app.use(
   cors({
-    origin: "http://localhost:1420",
+    origin: "*",
   })
 );
+
 
 mongoose.connect(
   "mongodb+srv://user1:user123@cluster0.g1p3xeq.mongodb.net/driversdbs"
@@ -33,25 +39,6 @@ const driverSchema = new mongoose.Schema({
 
 const DriverModel = mongoose.model("Driver", driverSchema);
 
-// const saveDriversToDatabase = async (driver, backupDate) => {
-//   try {
-//     const existingDrivers = await DriverModel.find({
-//       DeviceName: driver.DeviceName,
-//       DriverVersion: driver.DriverVersion,
-//       backupDate: backupDate,
-//     });
-
-//     if (existingDrivers.length > 0) {
-//       for (const existingDriver of existingDrivers) {
-//         await DriverModel.deleteOne({ _id: existingDriver._id });
-//       }
-//     }
-//     await DriverModel.create(driver);
-//     console.log("Driver saved to database");
-//   } catch (error) {
-//     console.error("Error saving driver to database:", error);
-//   }
-// };
 
 app.use(bodyParser.json());
 
