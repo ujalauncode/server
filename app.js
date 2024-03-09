@@ -249,11 +249,70 @@ const outdatedDriverSchema = new mongoose.Schema({
 const OutdatedDriver = mongoose.model('OutdatedDriver', outdatedDriverSchema);
 app.use(bodyParser.json());
 
+// app.post('/api/outdatedDrivers', async (req, res) => {
+//   try {
+//     const { outdatedDrivers, productID } = req.body; // Extract outdatedDrivers and productID from the request body
+
+//     const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers);
+
+//     if (newOutdatedDrivers.length === 0) {
+//       return res.status(200).json({ message: 'No new outdated drivers to save' });
+//     }
+
+//     const outdatedDriversWithProductID = newOutdatedDrivers.map(driver => ({
+//       ...driver,
+//       productID
+//     }));
+//     await OutdatedDriver.insertMany(outdatedDriversWithProductID);
+
+//     res.status(201).json({ message: 'Outdated drivers saved successfully' });
+//   } catch (error) {
+//     console.error('Error saving outdated drivers:', error);
+//     res.status(500).json({ error: 'Failed to save outdated drivers' });
+//   }
+// });
+
+// async function filterOutExistingDrivers(outdatedDrivers) {
+//   if (!outdatedDrivers || outdatedDrivers.length === 0) {
+//     return []; // Return an empty array if outdatedDrivers is undefined or empty
+//   }
+
+//   try {
+//     const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
+//     const existingDriverNamesAndProductIDs = existingDrivers.map(driver => ({
+//       driverName: driver.DeviceName,
+//       productID: driver.productID
+//     }));
+
+//     const newOutdatedDrivers = outdatedDrivers.filter(driver => {
+//       // Check if there's an existing driver with the same name but different productId
+//       const exists = existingDriverNamesAndProductIDs.some(existingDriver => {
+//         return existingDriver.driverName === driver.DeviceName && existingDriver.productID !== driver.productID;
+//       });
+
+//       return !exists;
+//     });
+
+//     return newOutdatedDrivers;
+//   } catch (error) {
+//     console.error('Error filtering existing drivers:', error);
+//     throw error; // Throw the error to propagate it to the caller
+//   }
+// }
+
+
 app.post('/api/outdatedDrivers', async (req, res) => {
   try {
     const { outdatedDrivers, productID } = req.body; // Extract outdatedDrivers and productID from the request body
 
-    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers);
+    // Check if there are existing outdated drivers
+    const existingOutdatedDrivers = await OutdatedDriver.find({ productID });
+    if (existingOutdatedDrivers.length > 0) {
+      return res.status(200).json({ message: 'Outdated drivers have already been scanned' });
+    }
+
+    // Filter new outdated drivers
+    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers, productID);
 
     if (newOutdatedDrivers.length === 0) {
       return res.status(200).json({ message: 'No new outdated drivers to save' });
@@ -272,25 +331,18 @@ app.post('/api/outdatedDrivers', async (req, res) => {
   }
 });
 
-async function filterOutExistingDrivers(outdatedDrivers) {
+async function filterOutExistingDrivers(outdatedDrivers, productID) {
   if (!outdatedDrivers || outdatedDrivers.length === 0) {
     return []; // Return an empty array if outdatedDrivers is undefined or empty
   }
 
   try {
-    const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
-    const existingDriverNamesAndProductIDs = existingDrivers.map(driver => ({
-      driverName: driver.DeviceName,
-      productID: driver.productID
-    }));
+    const existingDrivers = await OutdatedDriver.find({ productID });
+    const existingDriverNames = existingDrivers.map(driver => driver.driverName);
 
     const newOutdatedDrivers = outdatedDrivers.filter(driver => {
-      // Check if there's an existing driver with the same name but different productId
-      const exists = existingDriverNamesAndProductIDs.some(existingDriver => {
-        return existingDriver.driverName === driver.DeviceName && existingDriver.productID !== driver.productID;
-      });
-
-      return !exists;
+      // Check if there's an existing driver with the same name
+      return !existingDriverNames.includes(driver.DeviceName);
     });
 
     return newOutdatedDrivers;
