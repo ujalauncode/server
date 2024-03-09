@@ -267,7 +267,6 @@ app.post('/api/outdatedDrivers', async (req, res) => {
   }
 });
 
-// GET endpoint to retrieve outdated drivers based on productID
 app.get('/api/outdatedDrivers/:productID', async (req, res) => {
   try {
     const productID = req.params.productID;
@@ -312,20 +311,21 @@ app.get('/api/outdatedDrivers/count', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
   }
 });
+
 async function getOutdatedDriversCount() {
   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
   return outdatedDriversCount;
 }
 
-app.get("/outdatedDrivers", async (req, res) => {
-  try {
-    const drivers = await OutdatedDriver.find();
-    res.json(drivers);
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+// app.get("/outdatedDrivers", async (req, res) => {
+//   try {
+//     const drivers = await OutdatedDriver.find();
+//     res.json(drivers);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
   try {
