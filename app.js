@@ -31,7 +31,7 @@ const driverSchema = new mongoose.Schema({
   DeviceName: String,
   DriverVersion: String,
   backupDate: String,
-  productID: productID,
+  productID: String,
 
 });
 
