@@ -338,13 +338,25 @@ async function getOutdatedDriversBySystemID(systemID) {
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("id",id)
-    const { productID } = req.body; // Extract the product ID from the request body
+    const { productID } = req.body;
 
-    await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date", ProductID: productID });
+    // Check if the id and productID are provided
+    if (!id || !productID) {
+      return res.status(400).json({ error: 'Both id and productID must be provided' });
+    }
+
+    // Find and update the outdated driver
+    const updatedDriver = await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date", ProductID: productID }, { new: true });
+
+    // Check if the driver with the provided id exists
+    if (!updatedDriver) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    // Remove drivers with status "Up to date"
     await checkDriverStatusesAndRemoveUpToDateDrivers();
 
-    res.status(200).json({ message: 'Driver status updated successfully' });
+    res.status(200).json({ message: 'Driver status updated successfully', updatedDriver });
   } catch (error) {
     console.error('Error updating driver status:', error);
     res.status(500).json({ error: 'Failed to update driver status' });
@@ -353,13 +365,21 @@ app.put('/api/outdatedDrivers/:id', async (req, res) => {
 
 async function checkDriverStatusesAndRemoveUpToDateDrivers() {
   try {
+    // Find all drivers with status "Up to date"
     const upToDateDrivers = await OutdatedDriver.find({ DriverStatus: "Up to date" });
-    await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
-    console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
+
+    // If there are drivers with status "Up to date", remove them from the database
+    if (upToDateDrivers.length > 0) {
+      await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
+      console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
+    } else {
+      console.log('No drivers with status "Up to date" found.');
+    }
   } catch (error) {
     console.error('Error checking and removing drivers with status "Up to date":', error);
   }
 }
+
 
 
 
