@@ -320,28 +320,22 @@ async function getOutdatedDriversCount(productID) {
 }
 
 
-app.get("/outdatedDrivers", async (req, res) => {
+app.get('/api/outdatedDrivers/system/:systemID', async (req, res) => {
   try {
-    const { productId } = req.query;
-
-    if (!productId) {
-      return res.status(400).json({ error: 'ProductId is required' });
-    }
-
-    const drivers = await OutdatedDriver.find({ productID: productId });
-
-    console.log('drivers =',drivers)
-
-    if (drivers.length === 0) {
-      return res.status(404).json({ message: 'No drivers found for the specified productId' });
-    }
-
-    res.json(drivers);
+    const systemID = req.params.systemID;
+    const outdatedDrivers = await getOutdatedDriversBySystemID(systemID);
+    res.status(200).json(outdatedDrivers);
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send("Internal Server Error");
+    console.error('Error retrieving outdated drivers for the system:', error);
+    res.status(500).json({ error: 'Failed to retrieve outdated drivers for the system' });
   }
 });
+
+async function getOutdatedDriversBySystemID(systemID) {
+  const outdatedDrivers = await OutdatedDriver.find({ productID: systemID });
+  return outdatedDrivers;
+}
+
 
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
   try {
