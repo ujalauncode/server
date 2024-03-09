@@ -38,11 +38,12 @@ const DriverModel = mongoose.model("Driver", driverSchema);
 
 app.use(bodyParser.json());
 
-const saveDriverToDatabase = async (driver, backupDate) => {
+const saveDriverToDatabase = async (driver, backupDate, productID) => {
   try {
     const existingDrivers = await DriverModel.find({
       DeviceName: driver.DeviceName,
       DriverVersion: driver.DriverVersion,
+      productID: productID
     }).sort({ backupDate: -1 });
 
     if (existingDrivers.length > 0) {
@@ -58,6 +59,7 @@ const saveDriverToDatabase = async (driver, backupDate) => {
       DeviceName: driver.DeviceName,
       DriverVersion: driver.DriverVersion,
       backupDate: backupDate,
+      productID: productID
     });
     console.log("Driver saved to database:", driver);
   } catch (error) {
@@ -66,22 +68,23 @@ const saveDriverToDatabase = async (driver, backupDate) => {
   }
 };
 
-const saveBackupDateToDatabase = async (backupDate, driverData) => {
+const saveBackupDateToDatabase = async (backupDate, driverData, productID) => {
   try {
     const existingBackupDate = await DriverModel.findOne({
       backupDate: backupDate,
+      productID: productID
     });
 
     if (!existingBackupDate) {
-      await DriverModel.create({ backupDate: backupDate });
+      await DriverModel.create({ backupDate: backupDate, productID: productID });
       console.log("Backup date saved to database:", backupDate);
 
-      await DriverModel.deleteMany({});
+      await DriverModel.deleteMany({ productID: productID });
       console.log("All previous drivers deleted from the database.");
 
       // Save new drivers
       for (const driver of driverData) {
-        await saveDriverToDatabase(driver, backupDate);
+        await saveDriverToDatabase(driver, backupDate, productID);
       }
 
       console.log("New drivers saved to the database.");
@@ -96,11 +99,12 @@ const saveBackupDateToDatabase = async (backupDate, driverData) => {
 
 app.post("/backupalldata", async (req, res) => {
   try {
-    const { driverData, backupDate } = req.body; // Extract driverData and backupDate from request body
-        const currentDate = new Date().toLocaleDateString("en-GB");
+    const { driverData, backupDate, productID } = req.body; // Extract driverData, backupDate, and productID from request body
+    const currentDate = new Date().toLocaleDateString("en-GB");
 
     const existingBackupDate = await DriverModel.findOne({
       backupDate: currentDate,
+      productID: productID
     });
 
     if (existingBackupDate) {
@@ -112,9 +116,9 @@ app.post("/backupalldata", async (req, res) => {
     }
 
     for (const driver of driverData) {
-      await saveDriverToDatabase(driver, backupDate);
+      await saveDriverToDatabase(driver, backupDate, productID);
     }
-    await saveBackupDateToDatabase(backupDate);
+    await saveBackupDateToDatabase(backupDate, driverData, productID);
 
     res.json({
       message: "Backup successful",
@@ -126,6 +130,7 @@ app.post("/backupalldata", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 app.get("/backupall", async (req, res) => {
   try {
@@ -162,39 +167,34 @@ app.delete("/backupdate/:id", async (req, res) => {
   }
 });
 
-app.get("/backupdate", async (req, res) => {
+app.get("/backupdate/:productID", async (req, res) => {
   try {
-    const latestBackups = await DriverModel.find({});
+    const { productID } = req.params;
+
+    const latestBackups = await DriverModel.find({ productID: productID });
 
     const uniqueDates = [];
     const seen = new Set();
 
     if (latestBackups.length > 0) {
-
       let latestBackupDates = latestBackups
         .map((data) => {
           return { _id: data._id, backupDate: data.backupDate };
         })
         .filter((date) => date.backupDate && isValidDate(date.backupDate));
 
-      console.log("latestBackupDates", latestBackupDates);
-
       function removeDuplicateDates(latestBackupDates) {
         for (const item of latestBackupDates) {
           const { _id, backupDate } = item;
           if (!seen.has(backupDate)) {
             seen.add(backupDate);
-            console.log("_id", _id);
-
             uniqueDates.push({ _id, backupDate });
           }
         }
-
         return uniqueDates;
       }
 
       const uniqueData = removeDuplicateDates(latestBackupDates);
-      console.log("unique data =", uniqueData);
 
       const sortedData = uniqueData.sort((a, b) => {
         const dateA = new Date(a.backupDate.split("/").reverse().join("/"));
@@ -221,6 +221,7 @@ app.get("/backupdate", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 function isValidDate(dateString) {
   const pattern = /^\d{2}\/\d{2}\/\d{4}$/;
