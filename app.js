@@ -240,27 +240,25 @@ app.get("/totalcount", async (req, res) => {
 const outdatedDriverSchema = new mongoose.Schema({
   DeviceName: String,
   DriverVersion: String,
-  DriverStatus:String,
+  DriverStatus: String,
   productID: String // Adding the productID field to the schema
 });
+
 const OutdatedDriver = mongoose.model('OutdatedDriver', outdatedDriverSchema);
 app.use(bodyParser.json());
 
+// POST endpoint to save outdated drivers
 app.post('/api/outdatedDrivers', async (req, res) => {
   try {
     const { outdatedDrivers, productID } = req.body; // Extract outdatedDrivers and productID from the request body
 
-    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers);
+    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers, productID);
 
     if (newOutdatedDrivers.length === 0) {
       return res.status(200).json({ message: 'No new outdated drivers to save' });
     }
 
-    const outdatedDriversWithProductID = newOutdatedDrivers.map(driver => ({
-      ...driver,
-      productID
-    }));
-    await OutdatedDriver.insertMany(outdatedDriversWithProductID);
+    await OutdatedDriver.insertMany(newOutdatedDrivers);
 
     res.status(201).json({ message: 'Outdated drivers saved successfully' });
   } catch (error) {
@@ -269,22 +267,39 @@ app.post('/api/outdatedDrivers', async (req, res) => {
   }
 });
 
-async function filterOutExistingDrivers(outdatedDrivers) {
+// GET endpoint to retrieve outdated drivers based on productID
+app.get('/api/outdatedDrivers/:productID', async (req, res) => {
+  try {
+    const productID = req.params.productID;
+    const outdatedDrivers = await OutdatedDriver.find({ productID });
+
+    res.status(200).json(outdatedDrivers);
+  } catch (error) {
+    console.error('Error retrieving outdated drivers:', error);
+    res.status(500).json({ error: 'Failed to retrieve outdated drivers' });
+  }
+});
+
+async function filterOutExistingDrivers(outdatedDrivers, productID) {
   if (!outdatedDrivers || outdatedDrivers.length === 0) {
     return []; // Return an empty array if outdatedDrivers is undefined or empty
   }
 
   try {
-    const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
-    const existingDriverNames = new Set(existingDrivers.map(driver => driver.driverName));
-    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.driverName));
+    const existingDrivers = await OutdatedDriver.find({ productID });
+    const existingDriverNames = new Set(existingDrivers.map(driver => driver.DeviceName));
+    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.DeviceName));
 
-    return newOutdatedDrivers;
+    return newOutdatedDrivers.map(driver => ({
+      ...driver,
+      productID
+    }));
   } catch (error) {
     console.error('Error filtering existing drivers:', error);
     throw error; // Throw the error to propagate it to the caller
   }
 }
+
 
 
 // Route handler for getting the count of outdated drivers
