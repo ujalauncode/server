@@ -299,22 +299,6 @@ async function filterOutExistingDrivers(outdatedDrivers) {
 }
 
 
-
-// Route handler for getting the count of outdated drivers
-// app.get('/api/outdatedDrivers/count', async (req, res) => {
-//   try {
-//     const outdatedDriversCount = await getOutdatedDriversCount();
-//     res.status(200).json({ count: outdatedDriversCount });
-//   } catch (error) {
-//     console.error('Error retrieving outdated drivers count:', error);
-//     res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
-//   }
-// });
-// async function getOutdatedDriversCount() {
-//   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
-//   return outdatedDriversCount;
-// }
-
 app.get('/api/outdatedDrivers/count/:productID', async (req, res) => {
   try {
     const productID = req.params.productID;
