@@ -289,23 +289,53 @@ async function filterOutExistingDrivers(outdatedDrivers) {
 
 
 // Route handler for getting the count of outdated drivers
-app.get('/api/outdatedDrivers/count', async (req, res) => {
+// app.get('/api/outdatedDrivers/count', async (req, res) => {
+//   try {
+//     const outdatedDriversCount = await getOutdatedDriversCount();
+//     res.status(200).json({ count: outdatedDriversCount });
+//   } catch (error) {
+//     console.error('Error retrieving outdated drivers count:', error);
+//     res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
+//   }
+// });
+// async function getOutdatedDriversCount() {
+//   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
+//   return outdatedDriversCount;
+// }
+
+app.get('/api/outdatedDrivers/count/:productID', async (req, res) => {
   try {
-    const outdatedDriversCount = await getOutdatedDriversCount();
+    const productID = req.params.productID;
+    const outdatedDriversCount = await getOutdatedDriversCount(productID);
     res.status(200).json({ count: outdatedDriversCount });
   } catch (error) {
     console.error('Error retrieving outdated drivers count:', error);
     res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
   }
 });
-async function getOutdatedDriversCount() {
-  const outdatedDriversCount = await OutdatedDriver.countDocuments({});
+
+async function getOutdatedDriversCount(productID) {
+  const outdatedDriversCount = await OutdatedDriver.countDocuments({ productID });
   return outdatedDriversCount;
 }
 
+
 app.get("/outdatedDrivers", async (req, res) => {
   try {
-    const drivers = await OutdatedDriver.find();
+    const { productId } = req.query;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'ProductId is required' });
+    }
+
+    const drivers = await OutdatedDriver.find({ productID: productId });
+
+    console.log('drivers =',drivers)
+
+    if (drivers.length === 0) {
+      return res.status(404).json({ message: 'No drivers found for the specified productId' });
+    }
+
     res.json(drivers);
   } catch (error) {
     console.error("Error:", error);
