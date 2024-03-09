@@ -270,7 +270,9 @@ app.post('/api/outdatedDrivers', async (req, res) => {
 app.get('/api/outdatedDrivers/:productID', async (req, res) => {
   try {
     const productID = req.params.productID;
+    console.log('Product ID:', productID); // Log the productID to check if it's extracted correctly
     const outdatedDrivers = await OutdatedDriver.find({ productID });
+    console.log('Outdated Drivers:', outdatedDrivers); // Log the retrieved outdated drivers
 
     res.status(200).json(outdatedDrivers);
   } catch (error) {
@@ -278,6 +280,7 @@ app.get('/api/outdatedDrivers/:productID', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve outdated drivers' });
   }
 });
+
 
 async function filterOutExistingDrivers(outdatedDrivers, productID) {
   if (!outdatedDrivers || outdatedDrivers.length === 0) {
