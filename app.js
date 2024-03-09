@@ -287,8 +287,19 @@ async function filterOutExistingDrivers(outdatedDrivers) {
 
   try {
     const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
-    const existingDriverNames = new Set(existingDrivers.map(driver => driver.driverName));
-    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.driverName));
+    const existingDriverNamesAndProductIDs = existingDrivers.map(driver => ({
+      driverName: driver.DeviceName,
+      productID: driver.productID
+    }));
+
+    const newOutdatedDrivers = outdatedDrivers.filter(driver => {
+      // Check if there's an existing driver with the same name but different productId
+      const exists = existingDriverNamesAndProductIDs.some(existingDriver => {
+        return existingDriver.driverName === driver.DeviceName && existingDriver.productID !== driver.productID;
+      });
+
+      return !exists;
+    });
 
     return newOutdatedDrivers;
   } catch (error) {
@@ -309,21 +320,44 @@ app.get('/api/outdatedDrivers/count', async (req, res) => {
   }
 });
 
-app.get("/outdatedDrivers", async (req, res) => {
-  try {
-    const drivers = await OutdatedDriver.find();
-    res.json(drivers);
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+// app.get("/outdatedDrivers", async (req, res) => {
+//   try {
+//     const drivers = await OutdatedDriver.find();
+//     res.json(drivers);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 
 // Function to get the count of outdated drivers
 async function getOutdatedDriversCount() {
   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
   return outdatedDriversCount;
 }
+
+app.get("/outdatedDrivers", async (req, res) => {
+  try {
+    // Extract productId from the query parameters
+    const { productId } = req.query;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'ProductId is required' });
+    }
+
+    // Fetch drivers with the same productId
+    const drivers = await OutdatedDriver.find({ productID: productId });
+
+    if (drivers.length === 0) {
+      return res.status(404).json({ message: 'No drivers found for the specified productId' });
+    }
+
+    res.json(drivers);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
