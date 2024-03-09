@@ -277,8 +277,19 @@ async function filterOutExistingDrivers(outdatedDrivers) {
 
   try {
     const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
-    const existingDriverNames = new Set(existingDrivers.map(driver => driver.driverName));
-    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.driverName));
+    const existingDriverNamesAndProductIDs = existingDrivers.map(driver => ({
+      driverName: driver.DeviceName,
+      productID: driver.productID
+    }));
+
+    const newOutdatedDrivers = outdatedDrivers.filter(driver => {
+      // Check if there's an existing driver with the same name but different productId
+      const exists = existingDriverNamesAndProductIDs.some(existingDriver => {
+        return existingDriver.driverName === driver.DeviceName && existingDriver.productID !== driver.productID;
+      });
+
+      return !exists;
+    });
 
     return newOutdatedDrivers;
   } catch (error) {
@@ -286,6 +297,7 @@ async function filterOutExistingDrivers(outdatedDrivers) {
     throw error; // Throw the error to propagate it to the caller
   }
 }
+
 
 
 // Route handler for getting the count of outdated drivers
@@ -320,7 +332,7 @@ async function getOutdatedDriversCount(productID) {
 }
 
 
-app.get('/api/outdatedDrivers/system/:systemID', async (req, res) => {
+app.get('/api/outdatedDrivers/:systemID', async (req, res) => {
   try {
     const systemID = req.params.systemID;
     const outdatedDrivers = await getOutdatedDriversBySystemID(systemID);
