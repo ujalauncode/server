@@ -11,6 +11,7 @@ const app = express();
 const port = process.env.port || 3000;
 const { platform } = require("os");
 
+
 app.use(
   cors({
     origin: "*",
@@ -240,25 +241,27 @@ app.get("/totalcount", async (req, res) => {
 const outdatedDriverSchema = new mongoose.Schema({
   DeviceName: String,
   DriverVersion: String,
-  DriverStatus: String,
+  DriverStatus:String,
   productID: String // Adding the productID field to the schema
 });
-
 const OutdatedDriver = mongoose.model('OutdatedDriver', outdatedDriverSchema);
 app.use(bodyParser.json());
 
-// POST endpoint to save outdated drivers
 app.post('/api/outdatedDrivers', async (req, res) => {
   try {
     const { outdatedDrivers, productID } = req.body; // Extract outdatedDrivers and productID from the request body
 
-    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers, productID);
+    const newOutdatedDrivers = await filterOutExistingDrivers(outdatedDrivers);
 
     if (newOutdatedDrivers.length === 0) {
       return res.status(200).json({ message: 'No new outdated drivers to save' });
     }
 
-    await OutdatedDriver.insertMany(newOutdatedDrivers);
+    const outdatedDriversWithProductID = newOutdatedDrivers.map(driver => ({
+      ...driver,
+      productID
+    }));
+    await OutdatedDriver.insertMany(outdatedDriversWithProductID);
 
     res.status(201).json({ message: 'Outdated drivers saved successfully' });
   } catch (error) {
@@ -267,41 +270,22 @@ app.post('/api/outdatedDrivers', async (req, res) => {
   }
 });
 
-app.get('/api/outdatedDrivers/:productID', async (req, res) => {
-  try {
-    const productID = req.params.productID;
-    console.log('Product ID:', productID); // Log the productID to check if it's extracted correctly
-    const outdatedDrivers = await OutdatedDriver.find({ productID });
-    console.log('Outdated Drivers:', outdatedDrivers); // Log the retrieved outdated drivers
-
-    res.status(200).json(outdatedDrivers);
-  } catch (error) {
-    console.error('Error retrieving outdated drivers:', error);
-    res.status(500).json({ error: 'Failed to retrieve outdated drivers' });
-  }
-});
-
-
-async function filterOutExistingDrivers(outdatedDrivers, productID) {
+async function filterOutExistingDrivers(outdatedDrivers) {
   if (!outdatedDrivers || outdatedDrivers.length === 0) {
     return []; // Return an empty array if outdatedDrivers is undefined or empty
   }
 
   try {
-    const existingDrivers = await OutdatedDriver.find({ productID });
-    const existingDriverNames = new Set(existingDrivers.map(driver => driver.DeviceName));
-    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.DeviceName));
+    const existingDrivers = await OutdatedDriver.find({}); // Fetch all existing drivers from the database
+    const existingDriverNames = new Set(existingDrivers.map(driver => driver.driverName));
+    const newOutdatedDrivers = outdatedDrivers.filter(driver => !existingDriverNames.has(driver.driverName));
 
-    return newOutdatedDrivers.map(driver => ({
-      ...driver,
-      productID
-    }));
+    return newOutdatedDrivers;
   } catch (error) {
     console.error('Error filtering existing drivers:', error);
     throw error; // Throw the error to propagate it to the caller
   }
 }
-
 
 
 // Route handler for getting the count of outdated drivers
@@ -314,21 +298,20 @@ app.get('/api/outdatedDrivers/count', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve outdated drivers count' });
   }
 });
-
 async function getOutdatedDriversCount() {
   const outdatedDriversCount = await OutdatedDriver.countDocuments({});
   return outdatedDriversCount;
 }
 
-// app.get("/outdatedDrivers", async (req, res) => {
-//   try {
-//     const drivers = await OutdatedDriver.find();
-//     res.json(drivers);
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
+app.get("/outdatedDrivers", async (req, res) => {
+  try {
+    const drivers = await OutdatedDriver.find();
+    res.json(drivers);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
   try {
