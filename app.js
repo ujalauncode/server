@@ -339,13 +339,24 @@ async function getOutdatedDriversBySystemID(systemID) {
 app.put('/api/outdatedDrivers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("id",id)
-    const { productID } = req.body; // Extract the product ID from the request body
+    const { productID } = req.body;
 
-    await OutdatedDriver.findByIdAndUpdate(id, { DriverStatus: "Up to date", ProductID: productID });
+    if (!id || !productID) {
+      return res.status(400).json({ error: 'Both id and productID must be provided' });
+    }
+
+    const updatedDriver = await OutdatedDriver.findByIdAndUpdate(id, {
+      DriverStatus: "Up to date",
+      ProductID: productID
+    }, { new: true });
+
+    if (!updatedDriver) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
     await checkDriverStatusesAndRemoveUpToDateDrivers();
 
-    res.status(200).json({ message: 'Driver status updated successfully' });
+    res.status(200).json({ message: 'Driver status updated successfully', updatedDriver });
   } catch (error) {
     console.error('Error updating driver status:', error);
     res.status(500).json({ error: 'Failed to update driver status' });
@@ -355,12 +366,16 @@ app.put('/api/outdatedDrivers/:id', async (req, res) => {
 async function checkDriverStatusesAndRemoveUpToDateDrivers() {
   try {
     const upToDateDrivers = await OutdatedDriver.find({ DriverStatus: "Up to date" });
-    await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
-    console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
+
+    if (upToDateDrivers.length > 0) {
+      await OutdatedDriver.deleteMany({ DriverStatus: "Up to date" });
+      console.log(`${upToDateDrivers.length} drivers with status "Up to date" removed from the database.`);
+    }
   } catch (error) {
     console.error('Error checking and removing drivers with status "Up to date":', error);
   }
 }
+
 
 
 
