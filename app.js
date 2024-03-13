@@ -94,13 +94,15 @@ const saveBackupDateToDatabase = async (backupDate, driverData, productID) => {
   }
 };
 
-
-
-
 app.post("/backupalldata", async (req, res) => {
   try {
     const { driverData, backupDate, productID } = req.body; 
     const currentDate = new Date().toLocaleDateString("en-GB");
+
+    // Ensure driverData is an array before proceeding
+    if (!Array.isArray(driverData)) {
+      return res.status(400).json({ message: "Invalid driverData format" });
+    }
 
     const existingBackupDate = await DriverModel.findOne({
       backupDate: currentDate,
@@ -130,6 +132,42 @@ app.post("/backupalldata", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
+
+// app.post("/backupalldata", async (req, res) => {
+//   try {
+//     const { driverData, backupDate, productID } = req.body; 
+//     const currentDate = new Date().toLocaleDateString("en-GB");
+
+//     const existingBackupDate = await DriverModel.findOne({
+//       backupDate: currentDate,
+//       productID: productID
+//     });
+
+//     if (existingBackupDate) {
+//       return res.json({
+//         message: "Backup already performed for today",
+//         driversCount: driverData.length,
+//         backupDate: currentDate,
+//       });
+//     }
+
+//     for (const driver of driverData) {
+//       await saveDriverToDatabase(driver, backupDate, productID);
+//     }
+//     await saveBackupDateToDatabase(backupDate, driverData, productID);
+
+//     res.json({
+//       message: "Backup successful",
+//       driversCount: driverData.length,
+//       backupDate: backupDate,
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 
 
 app.get("/backupall", async (req, res) => {
