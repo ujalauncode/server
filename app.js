@@ -36,6 +36,7 @@ const DriverModel = mongoose.model("Driver", driverSchema);
 app.use(bodyParser.json());
 
 const saveDriverToDatabase = async (driver, backupDate, productID) => {
+console.log("save driver func =",driver, backupDate, productID)
   try {
     const existingDrivers = await DriverModel.find({
       DeviceName: driver.DeviceName,
@@ -43,9 +44,13 @@ const saveDriverToDatabase = async (driver, backupDate, productID) => {
       productID: productID
     }).sort({ backupDate: -1 });
 
+    console.log("existing driver =",existingDrivers)
+
     if (existingDrivers.length > 0) {
+      console.log("if condition")
       await Promise.all(
         existingDrivers.slice(1).map(async (existingDriver) => {
+          console.log("map =",existingDriver)
           await existingDriver.remove();
           console.log("Old driver removed from database:", existingDriver);
         })
@@ -60,7 +65,7 @@ const saveDriverToDatabase = async (driver, backupDate, productID) => {
     });
     console.log("Driver saved to database:", driver);
   } catch (error) {
-    console.error("Error saving driver to database:", error);
+    console.error("Error saving driver to database:", error.message);
     throw error; // Propagate error for better error handling
   }
 };
@@ -94,15 +99,56 @@ const saveBackupDateToDatabase = async (backupDate, driverData, productID) => {
   }
 };
 
+// app.post("/backupalldata", async (req, res) => {
+//   console.log("api backup data is calling")
+//   try {
+//     const { driverData, backupDate, productID } = req.body; 
+//     const currentDate = new Date().toLocaleDateString("en-GB");
+
+//     // Validate that driverData is an array
+//     if (!Array.isArray(driverData)) {
+//       return res.status(400).json({ message: "Invalid driverData format" });
+//     }
+
+//     // Check if backup for current date and productID exists
+//     const existingBackupDate = await DriverModel.findOne({
+//       backupDate: currentDate,
+//       productID: productID
+//     });
+
+//     if (existingBackupDate) {
+//       return res.json({
+//         message: "Backup already performed for today",
+//         driversCount: driverData.length,
+//         backupDate: currentDate,
+//       });
+//     }
+
+//     // Save each driver with the provided productID
+//     // for (const driver of driverData) {
+//     //   await saveDriverToDatabase(driver, backupDate, productID);
+//     // }
+
+//     // Save backup date along with driver information
+//     await saveBackupDateToDatabase(backupDate, driverData, productID);
+
+//     res.json({
+//       message: "Backup successful",
+//       driversCount: driverData.length,
+//       backupDate: backupDate,
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
+
 app.post("/backupalldata", async (req, res) => {
   try {
     const { driverData, backupDate, productID } = req.body; 
     const currentDate = new Date().toLocaleDateString("en-GB");
-
-    // Ensure driverData is an array before proceeding
-    if (!Array.isArray(driverData)) {
-      return res.status(400).json({ message: "Invalid driverData format" });
-    }
 
     const existingBackupDate = await DriverModel.findOne({
       backupDate: currentDate,
@@ -132,42 +178,6 @@ app.post("/backupalldata", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-
-
-// app.post("/backupalldata", async (req, res) => {
-//   try {
-//     const { driverData, backupDate, productID } = req.body; 
-//     const currentDate = new Date().toLocaleDateString("en-GB");
-
-//     const existingBackupDate = await DriverModel.findOne({
-//       backupDate: currentDate,
-//       productID: productID
-//     });
-
-//     if (existingBackupDate) {
-//       return res.json({
-//         message: "Backup already performed for today",
-//         driversCount: driverData.length,
-//         backupDate: currentDate,
-//       });
-//     }
-
-//     for (const driver of driverData) {
-//       await saveDriverToDatabase(driver, backupDate, productID);
-//     }
-//     await saveBackupDateToDatabase(backupDate, driverData, productID);
-
-//     res.json({
-//       message: "Backup successful",
-//       driversCount: driverData.length,
-//       backupDate: backupDate,
-//     });
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
 
 
 app.get("/backupall", async (req, res) => {
