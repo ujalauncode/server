@@ -94,12 +94,14 @@ const saveBackupDateToDatabase = async (backupDate, driverData, productID) => {
   }
 };
 
+
+
+
 app.post("/backupalldata", async (req, res) => {
   try {
     const { driverData, backupDate, productID } = req.body; 
     const currentDate = new Date().toLocaleDateString("en-GB");
 
-    // Check if backup for current date and productID exists
     const existingBackupDate = await DriverModel.findOne({
       backupDate: currentDate,
       productID: productID
@@ -113,12 +115,9 @@ app.post("/backupalldata", async (req, res) => {
       });
     }
 
-    // Save each driver with the provided productID
     for (const driver of driverData) {
       await saveDriverToDatabase(driver, backupDate, productID);
     }
-
-    // Save backup date along with driver information
     await saveBackupDateToDatabase(backupDate, driverData, productID);
 
     res.json({
@@ -131,41 +130,6 @@ app.post("/backupalldata", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-
-// app.post("/backupalldata", async (req, res) => {
-//   try {
-//     const { driverData, backupDate, productID } = req.body; 
-//     const currentDate = new Date().toLocaleDateString("en-GB");
-
-//     const existingBackupDate = await DriverModel.findOne({
-//       backupDate: currentDate,
-//       productID: productID
-//     });
-
-//     if (existingBackupDate) {
-//       return res.json({
-//         message: "Backup already performed for today",
-//         driversCount: driverData.length,
-//         backupDate: currentDate,
-//       });
-//     }
-
-//     for (const driver of driverData) {
-//       await saveDriverToDatabase(driver, backupDate, productID);
-//     }
-//     await saveBackupDateToDatabase(backupDate, driverData, productID);
-
-//     res.json({
-//       message: "Backup successful",
-//       driversCount: driverData.length,
-//       backupDate: backupDate,
-//     });
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
 
 
 app.get("/backupall", async (req, res) => {
